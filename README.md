@@ -2,9 +2,9 @@
 dive to callback with context
 
 
-*example
+**example^**
 
-
+```
 const d = (cb) => {
 	return (t, y) => {
 		console.log(t, y);
@@ -21,10 +21,24 @@ const z = (cb) => {
 	}, 1000);
 };
 
-const m = d.dive('qwer')(function (a, b) {
+const m = dive.call(d, 'qwer')(function (a, b) {
 	console.log(_currentContext, a, b);
 });
 
-const s = z.dive('lkjh');
+const s = dive.call(z, 'lkjh');
 
 s(m);
+
+```
+
+
+
+will output
+
+
+
+```
+_currentContext lkjh
+zxcv vcxz
+qwer asdf fdsa
+```
