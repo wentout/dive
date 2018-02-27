@@ -2,7 +2,7 @@
 dive to callback with context
 
 
-**example^**
+**£xampl€**
 
 ```
 const d = (cb) => {
@@ -41,4 +41,10 @@ will output
 _currentContext lkjh
 zxcv vcxz
 qwer asdf fdsa
+```
+
+
+For more details run:
+```
+node example.js
 ```
