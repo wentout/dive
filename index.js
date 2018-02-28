@@ -19,8 +19,16 @@
 var currentContext;
 
 // basic functionality
-const dive = function (context, ctx, brfn) {
-	const fn = this;
+const dive = function (context, ctx, brfn, ..._args) {
+	let fn = this;
+	if (typeof fn !== 'function') {
+		// Call as an Object Property
+		if (context && typeof context[ctx] == 'function') {
+			fn = context[ctx];
+			ctx = context;
+			context = brfn;
+		}
+	}
 	const base = function () {
 		const run = fn.bind(ctx || this);
 		const args = [...arguments].map(arg => {
@@ -39,13 +47,12 @@ const dive = function (context, ctx, brfn) {
 		return answer;
 	};
 	base._currentContext = context;
+	if (_args.length) {
+		// immediate invocation
+		base.apply(ctx || this, _args);
+	}
 	return base;
 };
-
-const objectMethodDive = (obj, methodName, context, breakResultFn) => {
-	return dive.call(obj[methodName], context, obj, breakResultFn);
-};
-dive.object = objectMethodDive;
 
 dive.enableFunctions = () => {
 	Function.prototype.dive = dive;
@@ -67,6 +74,9 @@ dive.setCurrentContextProp = setCurrentContextProp;
 setCurrentContextProp(dive);
 dive.useGlobal = () => {
 	setCurrentContextProp(global);
+};
+dive.put = (context) => {
+	currentContext = context;
 };
 
 
@@ -126,11 +136,13 @@ if (async_hooks) {
 	dive.enableAsyncHooks = () => {
 		asyncHook.enable();
 		dive.getExecId = getExecId;
+		return dive;
 	};
 	dive.disableAsyncHooks = () => {
 		hashAllHooks = {};
 		delete dive.getExecId;
 		asyncHook.disable();
+		return dive;
 	};
 }
 
