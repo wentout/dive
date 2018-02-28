@@ -1,6 +1,7 @@
 'use strict';
 
 const dive = require('./index');
+dive.enableAsyncHooks();
 
 const line = '-'.repeat(75);
 console.log('\n\nSTART\n');
@@ -10,7 +11,7 @@ console.log(line);
 const log = (mark, ...args) => {
 	mark = `${mark}`.padEnd(25);
 	const eid = `${dive.getExecId()}`.padStart(5);
-	const ctx = `${global._currentContext}`.padStart(10).padEnd(11);
+	const ctx = `${dive.currentContext}`.padStart(10).padEnd(11);
 	console.log(`${eid} | ${ctx} | ${mark} |`, ...args);
 };
 
@@ -62,6 +63,6 @@ setTimeout(() => {
 	console.log('TOTAL');
 	console.log(line);
 	log('dive.hashAllHooks', dive.hashAllHooks);
-	log('global._currentContext');
+	log('dive.currentContext');
 	console.log('\n');
 }, 3000);
