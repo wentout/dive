@@ -1,0 +1,23 @@
+{
+  "name": "context-dive",
+  "version": "1.0.0",
+  "description": "dive to async event-loop calls with context",
+  "main": "index.js",
+  "scripts": {
+    "test": "example.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wentout/dive.git"
+  },
+  "keywords": [
+    "context",
+    "async_hooks"
+  ],
+  "author": "went.out@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wentout/dive/issues"
+  },
+  "homepage": "https://github.com/wentout/dive#readme"
+}
