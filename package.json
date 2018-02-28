@@ -1,10 +1,10 @@
 {
   "name": "context-dive",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "dive to async event-loop calls with context",
   "main": "index.js",
   "scripts": {
-    "test": "example.js"
+    "test": "node example.js"
   },
   "repository": {
     "type": "git",
