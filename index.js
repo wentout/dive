@@ -20,6 +20,9 @@ var currentContext;
 
 // basic functionality
 const dive = function (context, ctx, brfn, ..._args) {
+	if (context === undefined) {
+		context = currentContext;
+	}
 	let fn = this;
 	if (typeof fn !== 'function') {
 		// Call as an Object Property
@@ -54,11 +57,19 @@ const dive = function (context, ctx, brfn, ..._args) {
 	return base;
 };
 
+
 dive.enableFunctions = () => {
-	Function.prototype.dive = dive;
+	Object.defineProperty(Function.prototype, 'dive', {
+		get () {
+			return dive.call(this, currentContext);
+		},
+		enumerable   : true
+	});	
+	Function.prototype._dive = dive;
 };
 dive.disableFunctions = () => {
 	delete Function.prototype.dive;
+	delete Function.prototype._dive;
 };
 
 const setCurrentContextProp = (obj) => {
