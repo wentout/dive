@@ -345,6 +345,18 @@ const drop = (asyncId) => {
 	
 };
 
+dive.stopTracing = () => {
+	if (!state.currentContext) {
+		return;
+	}
+	Object.keys(state.asyncIdHooks).forEach(id => {
+		const hook = state.asyncIdHooks[id];
+		if (hook.ctx == state.currentContext) {
+			drop(id);
+		}
+	});
+};
+
 dive.hooks = {
 	init,
 	before,
