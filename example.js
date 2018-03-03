@@ -68,6 +68,20 @@ const w = function (a, b, cb, trace = ++count) {
 	}, 100);
 };
 
+var intCount = 0;
+const int = setInterval(() => {
+	setImmediate(() => {
+		process.nextTick(() => {
+			intCount++
+			log('interval', 'no context', intCount);
+			if (intCount > 99) {
+				clearInterval(int);
+			}
+		});
+	});
+}, 50);
+
+
 const test = (mark, cb) => {
 	
 	makeReportHead(mark);

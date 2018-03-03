@@ -247,6 +247,15 @@ const init = (asyncId, type, triggerId, resource) => {
 			// it means it is still 
 			// inside of our context ?
 			it.probability == 0
+			// and also we are able
+			// to check tracing in deep
+			// we must care the following
+			&&
+			state.eidHooks[prevId - 2]
+			&&
+			state.eidHooks[prevId - 2][prevId - 1]
+			&&
+			state.eidHooks[prevId - 2][prevId - 1].ctx == it.ctx
 		) {
 			
 			const ctx = {
