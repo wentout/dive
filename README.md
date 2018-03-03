@@ -1,10 +1,15 @@
 # dive
 dive to callback with context
 
+```
+npm i context-dive
+```
 
 **£xampl€**
 
 ```
+const dive = require('context-dive');
+
 const d = (cb) => {
 	return (t, y) => {
 		console.log(t, y);
@@ -15,7 +20,7 @@ const d = (cb) => {
 };
 
 const z = (cb) => {
-	console.log('_currentContext', global._currentContext);
+	console.log('currentContext', dive.currentContext);
 	setTimeout(() => {
 		cb('zxcv', 'vcxz');
 	}, 1000);
@@ -32,13 +37,11 @@ s(m);
 ```
 
 
-
 will output
 
 
-
 ```
-_currentContext lkjh
+currentContext lkjh
 zxcv vcxz
 qwer asdf fdsa
 ```
