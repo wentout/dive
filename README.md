@@ -7,7 +7,7 @@ npm i context-dive
 
 **£xampl€**
 
-```
+```JS
 const dive = require('context-dive');
 
 const d = (cb) => {
