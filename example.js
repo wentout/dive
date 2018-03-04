@@ -68,18 +68,7 @@ const w = function (a, b, cb, trace = ++count) {
 	}, 100);
 };
 
-var intCount = 0;
-const int = setInterval(() => {
-	setImmediate(() => {
-		process.nextTick(() => {
-			intCount++
-			log('interval', 'no context', intCount);
-			if (intCount > 99) {
-				clearInterval(int);
-			}
-		});
-	});
-}, 50);
+
 
 
 const test = (mark, cb) => {
@@ -103,22 +92,35 @@ const test = (mark, cb) => {
 	d(m)('binded', 'context');
 	
 	setTimeout(() => {
-		console.log('\n');
-		console.log(`TOTAL ${mark}`);
-		console.log(line);
+		process.stdout.write(`\n\nTOTAL ${mark}\n`);
+		process.stdout.write(line);
 		log('dive.asyncIdHooks', util.inspect(dive.asyncIdHooks), '\n');
 		log('dive.triggerHooks', util.inspect(dive.triggerHooks), '\n');
 		log('dive.currentContext', dive.currentContext);
-		console.log('\n');
+		process.stdout.write('\n\n');
 		if (typeof cb == 'function') cb();
 	}, 3000);
 	
 };
 
-test('no async_hooks', () => {
-	dive.enableAsyncHooks();
-	test('async_hooks enabled');
-});
+const startTest = () => {
+	var intCount = 0;
+	const int = setInterval(() => {
+		setImmediate(() => {
+			process.nextTick(() => {
+				intCount++;
+				log('interval', 'no context', intCount);
+				if (intCount > 99) {
+					clearInterval(int);
+				}
+			});
+		});
+	}, 50);
 
-	
+	test('no async_hooks', () => {
+		dive.enableAsyncHooks();
+		test('async_hooks enabled');
+	});
+};
+startTest();
 

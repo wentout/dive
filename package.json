@@ -1,6 +1,6 @@
 {
   "name": "context-dive",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "dive to async event-loop calls with context",
   "main": "index.js",
   "scripts": {

@@ -39,7 +39,7 @@ const state = {
 	// eids for context selection
 	eidsEnabled  : false,
 	
-	DEBUGING_ON  : false
+	// DEBUGING_ON  : false
 };
 
 Object.defineProperty(state, 'currentContext', {
@@ -56,15 +56,6 @@ Object.defineProperty(state, 'currentContext', {
 // basic functionality
 const dive = function (context, ctx, brfn, ..._args) {
 	let fn = this;
-	if (context === undefined) {
-		if (typeof fn == 'function') {
-			// this call from Function.prototype.dive
-			// so we just need to get current context
-			context = state.currentContext;
-		} else {
-			return new Error('context-dive dive context is undefined');
-		}
-	}
 	if (typeof fn !== 'function') {
 		// Call as an Object Property
 		if (context && typeof context[ctx] == 'function') {
@@ -115,13 +106,13 @@ dive.enableFunctions = () => {
 	if (Function.prototype.dive) {
 		return;
 	}
-	Object.defineProperty(Function.prototype, 'dive', {
+	Function.prototype.dive = dive;
+	Object.defineProperty(Function.prototype, '_dive', {
 		get () {
-			return dive.call(this);
+			return dive.bind(this);
 		},
 		enumerable   : true
 	});	
-	Function.prototype._dive = dive;
 };
 
 dive.disableFunctions = () => {
@@ -162,8 +153,8 @@ const saveHooksContext = (ctx) => {
 	
 	if (!state.asyncIdHooks[ctx.asyncId]) {
 		state.asyncIdHooks[ctx.asyncId] = ctx;
-	} else if (state.DEBUGING_ON) {
-		debugger;
+	// } else if (state.DEBUGING_ON) {
+	// 	debugger;
 	}
 	
 	if (!state.triggerHooks[triggerId]) {
@@ -171,8 +162,8 @@ const saveHooksContext = (ctx) => {
 	}
 	if (!state.triggerHooks[triggerId][asyncId]) {
 		state.triggerHooks[triggerId][asyncId] = ctx;
-	} else if (state.DEBUGING_ON) {
-		debugger;
+	// } else if (state.DEBUGING_ON) {
+	// 	debugger;
 	}
 	
 	// tid & eid
@@ -184,8 +175,8 @@ const saveHooksContext = (ctx) => {
 	}
 	if (!state.eidHooks[eid][asyncId]) {
 		state.eidHooks[eid][asyncId] = ctx;
-	} else if (state.DEBUGING_ON) {
-		debugger;
+	// } else if (state.DEBUGING_ON) {
+	// 	debugger;
 	}
 	
 	if(! state.tidHooks[tid]) {
@@ -193,8 +184,8 @@ const saveHooksContext = (ctx) => {
 	}
 	if (!state.tidHooks[tid][asyncId]) {
 		state.tidHooks[tid][asyncId] = ctx;
-	} else if (state.DEBUGING_ON) {
-		debugger;
+	// } else if (state.DEBUGING_ON) {
+	// 	debugger;
 	}
 
 };
@@ -275,8 +266,8 @@ const init = (asyncId, type, triggerId, resource) => {
 			};
 			saveHooksContext(ctx);
 			
-		} else if (state.DEBUGING_ON) {
-			debugger;
+		// } else if (state.DEBUGING_ON) {
+		// 	debugger;
 		}
 	}
 };
@@ -294,7 +285,6 @@ const before = (asyncId) => {
 		// and able to apply it to new code
 		state.hookRunning = true;
 		// rolling forward
-		const mix = state.currentContext;
 		it.mix = state.currentContext;
 		state.currentContext = it.ctx;
 	}
@@ -334,13 +324,13 @@ const drop = (asyncId) => {
 	
 	if (state.eidHooks[eid] && state.eidHooks[eid][asyncId]) {
 		delete state.eidHooks[eid][asyncId];
-	} else if (state.DEBUGING_ON) {
-		debugger;
+	// } else if (state.DEBUGING_ON) {
+	// 	debugger;
 	}
 	if (state.tidHooks[tid] && state.tidHooks[tid][asyncId]) {
 		delete state.tidHooks[tid][asyncId];
-	} else if (state.DEBUGING_ON) {
-		debugger;
+	// } else if (state.DEBUGING_ON) {
+	// 	debugger;
 	}
 	
 };
