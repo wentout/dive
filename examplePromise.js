@@ -10,8 +10,7 @@ dive.enableFunctions();
 
 
 const promiseTest1 = () => {
-	dive;
-	debugger;
+	
 	// Simulate some stuff
 	const stuff = x => 2 + x;
 	
@@ -53,6 +52,7 @@ const promiseTest1 = () => {
 			.then(stuff)
 			.catch(() => {
 				process.stdout.write(`>>> promise context [ ${dive.currentContext} ]\n`);
+				dive.stopTracing();
 			});
 	};
 	run();
@@ -72,6 +72,7 @@ const promiseTest2 = () => {
 		process.stdout.write('\async calling\n');
 		var result = await resolveAfter2Seconds();
 		process.stdout.write(`>>> async/await ${result} [ ${dive.currentContext} ]\n`);
+		dive.stopTracing();
 	};
 	asyncCall();
 };
@@ -92,10 +93,10 @@ setTimeout(() => {
 		promiseTest2();
 		setTimeout(() => {
 			process.stdout.write(`dive.currentContext ${dive.currentContext}\n`);
-			// process.stdout.write(`dive.asyncIdHooks ${util.inspect(dive.asyncIdHooks)}\n`);
-			// process.stdout.write(`dive.triggerHooks ${util.inspect(dive.triggerHooks)}\n`);
-			// process.stdout.write(`dive.eidHooks ${util.inspect(dive.eidHooks)}\n`);
-			// process.stdout.write(`dive.tidHooks ${util.inspect(dive.tidHooks)}\n`);
+			process.stdout.write(`dive.asyncIdHooks ${util.inspect(dive.asyncIdHooks)}\n`);
+			process.stdout.write(`dive.eidHooks ${util.inspect(dive.eidHooks)}\n`);
+			process.stdout.write(`dive.triggerHooks ${util.inspect(dive.triggerHooks)}\n`);
+			process.stdout.write(`dive.tidHooks ${util.inspect(dive.tidHooks)}\n`);
 		}, 1000);
 	}, 1000);
 }, 1000);

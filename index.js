@@ -336,15 +336,30 @@ const drop = (asyncId) => {
 };
 
 dive.stopTracing = () => {
-	if (!state.currentContext) {
+	const ctx = state.currentContext;
+	if (!ctx) {
 		return;
 	}
 	Object.keys(state.asyncIdHooks).forEach(id => {
-		const hook = state.asyncIdHooks[id];
-		if (hook.ctx == state.currentContext) {
-			drop(id);
+		if (state.asyncIdHooks[id].ctx == ctx) {
+			delete state.asyncIdHooks[id];
+			delete state.triggerHooks[id];
 		}
 	});
+	['eidHooks', 'tidHooks', 'triggerHooks'].forEach(type => {
+		Object.keys(state[type]).forEach(hid => {
+			const hooks = state[type][hid];
+			Object.keys(hooks).forEach(id => {
+				if (hooks[id].ctx == ctx) {
+					delete state[type][hid][id];
+				}
+			});
+			if (!Object.keys(state[type][hid]).length) {
+				delete state[type][hid];
+			}
+		});
+	});
+	state.currentContext = undefined;
 };
 
 dive.hooks = {
