@@ -38,8 +38,6 @@ const state = {
 	// about to additionally enable
 	// eids for context selection
 	eidsEnabled  : false,
-	
-	// DEBUGING_ON  : false
 };
 
 Object.defineProperty(state, 'currentContext', {
@@ -92,7 +90,14 @@ const dive = function (context, ctx, brfn, ..._args) {
 	return base;
 };
 
-['currentContext', 'asyncIdHooks', 'triggerHooks', 'eidsEnabled'].forEach(name => {
+[
+	'currentContext',
+	'asyncIdHooks',
+	'triggerHooks',
+	'eidsEnabled',
+	'eidHooks',
+	'tidHooks'
+].forEach(name => {
 	Object.defineProperty(dive, name, {
 		get () {
 			return state[name];
@@ -153,8 +158,6 @@ const saveHooksContext = (ctx) => {
 	
 	if (!state.asyncIdHooks[ctx.asyncId]) {
 		state.asyncIdHooks[ctx.asyncId] = ctx;
-	// } else if (state.DEBUGING_ON) {
-	// 	debugger;
 	}
 	
 	if (!state.triggerHooks[triggerId]) {
@@ -162,30 +165,24 @@ const saveHooksContext = (ctx) => {
 	}
 	if (!state.triggerHooks[triggerId][asyncId]) {
 		state.triggerHooks[triggerId][asyncId] = ctx;
-	// } else if (state.DEBUGING_ON) {
-	// 	debugger;
 	}
 	
 	// tid & eid
 	const eid = dive.eid;
 	const tid = dive.tid;
 	
-	if(! state.eidHooks[eid]) {
+	if(!state.eidHooks[eid]) {
 		state.eidHooks[eid] = {};
 	}
 	if (!state.eidHooks[eid][asyncId]) {
 		state.eidHooks[eid][asyncId] = ctx;
-	// } else if (state.DEBUGING_ON) {
-	// 	debugger;
 	}
 	
-	if(! state.tidHooks[tid]) {
+	if(!state.tidHooks[tid]) {
 		state.tidHooks[tid] = {};
 	}
 	if (!state.tidHooks[tid][asyncId]) {
 		state.tidHooks[tid][asyncId] = ctx;
-	// } else if (state.DEBUGING_ON) {
-	// 	debugger;
 	}
 
 };
@@ -217,58 +214,57 @@ const init = (asyncId, type, triggerId, resource) => {
 			resource,
 			
 		};
+		return saveHooksContext(ctx);
+	}
+		
+	const prevId = asyncId - 1;
+	
+	// maybe new context born from calls
+	const it = state.asyncIdHooks[prevId];
+	// 2 == magic number, it is from tracing
+	// first -- birth of new context
+	// second -- birth of this context
+	const prev = state.eidHooks[prevId - 2];
+	
+	// this asyncId does not exists
+	if (
+		!state.asyncIdHooks[asyncId] &&
+		// but previous execution does
+		// and this run is directly after
+		it && it.resource &&
+		// next tick hop has no callback
+		!it.resource.callback &&
+		// and if probability == 0
+		// it means it is still 
+		// inside of our context ?
+		it.probability == 0
+		// and also we are able
+		// to check tracing in deep
+		// we must care the following
+		&&
+		prev
+		&&
+		prev[prevId - 1]
+		&&
+		prev[prevId - 1].ctx == it.ctx
+	) {
+		
+		const ctx = {
+			
+			// follow the previous
+			ctx         : it.ctx,
+			
+			// but increase the probability
+			probability : it.probability + 1,
+			
+			asyncId,
+			triggerId,
+			
+			type,
+			resource,
+			
+		};
 		saveHooksContext(ctx);
-		
-	} else {
-		
-		const prevId = asyncId - 1;
-		
-		// maybe new context born from calls
-		var it = state.asyncIdHooks[prevId];
-		
-		// this asyncId does not exists
-		if (
-			!state.asyncIdHooks[asyncId] &&
-			// but previous execution does
-			// and this run is directly after
-			it && it.resource &&
-			// next tick hop has no callback
-			!it.resource.callback &&
-			// and if probability == 0
-			// it means it is still 
-			// inside of our context ?
-			it.probability == 0
-			// and also we are able
-			// to check tracing in deep
-			// we must care the following
-			&&
-			state.eidHooks[prevId - 2]
-			&&
-			state.eidHooks[prevId - 2][prevId - 1]
-			&&
-			state.eidHooks[prevId - 2][prevId - 1].ctx == it.ctx
-		) {
-			
-			const ctx = {
-				
-				// follow the previous
-				ctx         : it.ctx,
-				
-				// but increase the probability
-				probability : it.probability + 1,
-				
-				asyncId,
-				triggerId,
-				
-				type,
-				resource,
-				
-			};
-			saveHooksContext(ctx);
-			
-		// } else if (state.DEBUGING_ON) {
-		// 	debugger;
-		}
 	}
 };
 
@@ -290,48 +286,52 @@ const before = (asyncId) => {
 	}
 };
 
+
 const drop = (asyncId) => {
 	
 	// 1. rolling back hook running state
 	state.hookRunning = false;
 	
-	// WOW !
-	// at AsyncHook.drop (/home/went/_dev/dive/index.js:293:26)
-	// at emitAfterNative (internal/async_hooks.js:163:40)
-	
-	// seekeing stored hooks
-	const aidHook = state.asyncIdHooks[asyncId];
-	
-	if (aidHook) {
-		state.currentContext = state.asyncIdHooks[asyncId].mix;
-		const triggerId = state.asyncIdHooks[asyncId].triggerId;
-		delete state.asyncIdHooks[asyncId];
-		if (
-			state.triggerHooks[triggerId] &&
-			state.triggerHooks[triggerId][asyncId]
-		) {
-			delete state.triggerHooks[triggerId][asyncId];
-		}
-	}
-	
-	if (state.triggerHooks[asyncId]) {
-		delete state.triggerHooks[asyncId];
-	}
-	
 	// tid & eid
 	const eid = dive.eid;
 	const tid = dive.tid;
 	
-	if (state.eidHooks[eid] && state.eidHooks[eid][asyncId]) {
+	// seekeing stored hook
+	const aidHook = state.asyncIdHooks[asyncId];
+	
+	let triggerId;
+	if (aidHook) {
+		state.currentContext = state.asyncIdHooks[asyncId].mix;
+		triggerId = state.asyncIdHooks[asyncId].triggerId;
+		delete state.asyncIdHooks[asyncId];
+		delete state.asyncIdHooks[eid];
+		delete state.asyncIdHooks[tid];
+	}
+	
+	if (state.eidHooks[eid]) {
 		delete state.eidHooks[eid][asyncId];
-	// } else if (state.DEBUGING_ON) {
-	// 	debugger;
+		delete state.eidHooks[eid][triggerId];
+		delete state.eidHooks[eid][tid];
 	}
-	if (state.tidHooks[tid] && state.tidHooks[tid][asyncId]) {
-		delete state.tidHooks[tid][asyncId];
-	// } else if (state.DEBUGING_ON) {
-	// 	debugger;
+	if (state.eidHooks[asyncId]) {
+		delete state.eidHooks[triggerId];
+		delete state.eidHooks[tid];
 	}
+	
+	// we don't actually need this all
+	// will rid of it the next versions
+	const dropIDs = [asyncId, eid, tid];
+	if (triggerId !== undefined) {
+		dropIDs.push(triggerId);
+	}
+	dropIDs.forEach((id) => {
+		if (state.triggerHooks[id]) {
+			delete state.triggerHooks[id];
+		}
+		if (state.tidHooks[id]) {
+			delete state.tidHooks[id];
+		}
+	});
 	
 };
 
