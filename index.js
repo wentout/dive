@@ -360,6 +360,7 @@ dive.stopTracing = () => {
 		});
 	});
 	state.currentContext = undefined;
+	return ctx;
 };
 
 dive.hooks = {
