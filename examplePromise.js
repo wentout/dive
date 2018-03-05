@@ -52,7 +52,7 @@ const promiseTest1 = () => {
 			.then(stuff)
 			.catch(() => {
 				process.stdout.write(`>>> promise context [ ${dive.currentContext} ]\n`);
-				dive.stopTracing();
+				// dive.stopTracing();
 			});
 	};
 	run();
@@ -68,11 +68,11 @@ const promiseTest2 = () => {
 		});
 	};
 	
-	async function asyncCall() {
+	var asyncCall = async function () {
 		process.stdout.write('\async calling\n');
 		var result = await resolveAfter2Seconds();
 		process.stdout.write(`>>> async/await ${result} [ ${dive.currentContext} ]\n`);
-		dive.stopTracing();
+		// dive.stopTracing();
 	};
 	asyncCall();
 };
@@ -94,7 +94,7 @@ setTimeout(() => {
 		setTimeout(() => {
 			process.stdout.write(`dive.currentContext ${dive.currentContext}\n`);
 			process.stdout.write(`dive.asyncIdHooks ${util.inspect(dive.asyncIdHooks)}\n`);
-			process.stdout.write(`dive.eidHooks ${util.inspect(dive.eidHooks)}\n`);
+			// process.stdout.write(`dive.eidHooks ${util.inspect(dive.eidHooks)}\n`);
 			process.stdout.write(`dive.triggerHooks ${util.inspect(dive.triggerHooks)}\n`);
 			process.stdout.write(`dive.tidHooks ${util.inspect(dive.tidHooks)}\n`);
 		}, 1000);

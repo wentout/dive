@@ -151,6 +151,11 @@ dive.put = (context) => {
 // async hooks
 const async_hooks = require('async_hooks');
 
+const dropsTypes = ['PROMISE', 'Timeout', 'TickObject'].reduce((o, type) => {
+	o[type] = true;
+	return o;
+}, {});
+
 const saveHooksContext = (ctx) => {
 	
 	const asyncId   = ctx.asyncId;
@@ -227,8 +232,8 @@ const init = (asyncId, type, triggerId, resource) => {
 	const prev = state.eidHooks[prevId - 2];
 	
 	// this asyncId does not exists
+	// cause init runs only once
 	if (
-		!state.asyncIdHooks[asyncId] &&
 		// but previous execution does
 		// and this run is directly after
 		it && it.resource &&
@@ -247,6 +252,8 @@ const init = (asyncId, type, triggerId, resource) => {
 		prev[prevId - 1]
 		&&
 		prev[prevId - 1].ctx == it.ctx
+		&&
+		!dropsTypes[type]
 	) {
 		
 		const ctx = {
@@ -363,11 +370,19 @@ dive.stopTracing = () => {
 	return ctx;
 };
 
+const promiseResolve = (asyncId) => {
+	if (!state.baseRunning) {
+		drop(asyncId);
+		state.currentContext = undefined;
+	}
+};
+
 dive.hooks = {
 	init,
 	before,
 	after   : drop,
-	destroy : drop
+	destroy : drop,
+	promiseResolve
 };
 
 dive.asyncHook = null;
