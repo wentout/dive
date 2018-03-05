@@ -50,9 +50,27 @@ function run() {
 		.then(stuff)
 		.catch(() => {
 			// Profit
-			process.stdout.write('>>>', dive.currentContext);
+			process.stdout.write(`>>> promise context [ ${dive.currentContext} ]\n`);
 		});
 }
 
 run.dive('we have context')();
-run._dive('we have context')();
+
+setTimeout(() => {
+	function resolveAfter2Seconds() {
+		return new Promise(resolve => {
+			setTimeout(() => {
+				resolve('resolved');
+			}, 500);
+		});
+	}
+	
+	async function asyncCall() {
+		process.stdout.write('\async calling\n');
+		var result = await resolveAfter2Seconds();
+		// expected output: "resolved"
+		process.stdout.write(`>>> async/await ${result} [ ${dive.currentContext} ]\n`);
+	}
+	
+	asyncCall.dive('another context')();
+}, 100);
