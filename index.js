@@ -50,6 +50,16 @@ Object.defineProperty(state, 'currentContext', {
 	configurable : false,
 	enumerable   : false
 });
+Object.defineProperty(state, 'ctx', {
+	get () {
+		return currentContext;
+	},
+	set (value) {
+		return changeContext(value);
+	},
+	configurable : false,
+	enumerable   : false
+});
 
 // basic functionality
 const dive = function (context, ctx, brfn, ..._args) {
@@ -400,6 +410,8 @@ dive.stopTracing = () => {
 	state.currentContext = undefined;
 	return ctx;
 };
+dive.clean = dive.stopTracing;
+
 
 const promiseResolve = (asyncId) => {
 	if (!state.baseRunning) {

@@ -9,10 +9,15 @@ dive.enableAsyncHooks();
 dive.enableFunctions();
 
 
-const promiseTest1 = () => {
+const promiseTest1 = (cb) => {
+	process.stdout.write('\n PROMISE TEST -----------------------\n');
 	
 	// Simulate some stuff
-	const stuff = x => 2 + x;
+	const stuff = x => {
+		const answer = 2 + x;
+		process.stdout.write(`>>> ctx [ ${dive.currentContext} ]  | answer ${answer}\n`);
+		return answer;
+	};
 	
 	// Simulate a delay.
 	const delay = ms => x => {
@@ -27,6 +32,7 @@ const promiseTest1 = () => {
 	};
 	
 	const nestedProblems = x => () => {
+		process.stdout.write(`>>> nestedProblems context [ ${dive.currentContext} ]\n`);
 		// After the third call, go to an eventual `delay(100)` that throws
 		if (x === 3) return Promise.resolve(1).then(delay(100));
 	
@@ -53,6 +59,7 @@ const promiseTest1 = () => {
 			.catch(() => {
 				process.stdout.write(`>>> promise context [ ${dive.currentContext} ]\n`);
 				// dive.stopTracing();
+				cb();
 			});
 	};
 	run();
@@ -60,6 +67,7 @@ const promiseTest1 = () => {
 
 
 const promiseTest2 = () => {
+	process.stdout.write('\n AWAIT TEST -----------------------\n');
 	function resolveAfter2Seconds() {
 		return new Promise(resolve => {
 			setTimeout(() => {
@@ -77,20 +85,22 @@ const promiseTest2 = () => {
 	asyncCall();
 };
 
-promiseTest1.dive('we have context 1')();
-promiseTest2.dive('another context 1')();
+promiseTest1.dive('we have context 1')(() => {
+	promiseTest2.dive('another context 1')();
+});
+
 
 setTimeout(() => {
 	
-	process.stdout.write('-----------------------\n');
-	
-	promiseTest1.dive('we have context 2')();
-	promiseTest2.dive('another context 2')();
+	promiseTest1.dive('we have context 2')(() => {
+		promiseTest2.dive('another context 2')();
+	});
 	
 	setTimeout(() => {
 		process.stdout.write('\nNext must be [ undefined ]\n');
-		promiseTest1();
-		promiseTest2();
+		promiseTest1(() => {
+			promiseTest2();
+		});
 		setTimeout(() => {
 			process.stdout.write(`dive.currentContext ${dive.currentContext}\n`);
 			process.stdout.write(`dive.asyncIdHooks ${util.inspect(dive.asyncIdHooks)}\n`);
