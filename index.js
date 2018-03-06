@@ -189,7 +189,10 @@ const saveHooksContext = (ctx) => {
 	if (!state.tidHooks[tid][asyncId]) {
 		state.tidHooks[tid][asyncId] = ctx;
 	}
-
+	
+	// if (typeof ctx.resource.callback == 'function') {
+	// 	ctx.resource.callback = dive.call(ctx.resource.callback, ctx.ctx);
+	// }
 };
 
 const init = (asyncId, type, triggerId, resource) => {
@@ -222,59 +225,87 @@ const init = (asyncId, type, triggerId, resource) => {
 		return saveHooksContext(ctx);
 	}
 		
+	// maybe new context born from calls
 	const prevId = asyncId - 1;
 	
-	// maybe new context born from calls
-	const it = state.asyncIdHooks[prevId];
-	// 2 == magic number, it is from tracing
-	// first -- birth of new context
-	// second -- birth of this context
-	const prev = state.eidHooks[prevId - 2];
-	
-	// this asyncId does not exists
-	// cause init runs only once
-	if (
-		// but previous execution does
-		// and this run is directly after
-		it && it.resource &&
-		// next tick hop has no callback
-		!it.resource.callback &&
-		// and if probability == 0
-		// it means it is still 
-		// inside of our context ?
-		it.probability == 0
-		// and also we are able
-		// to check tracing in deep
-		// we must care the following
-		&&
-		prev
-		&&
-		prev[prevId - 1]
-		&&
-		prev[prevId - 1].ctx == it.ctx
-		&&
-		!dropsTypes[type]
-	) {
-		
-		const ctx = {
+	const len = Object.keys(state.asyncIdHooks).length;
+	if (len) {
+		// 2 == magic number, it is from tracing
+		// first -- birth of new context
+		// second -- birth of this context
+		const prev = state.eidHooks[prevId - 2];
+		const it = state.asyncIdHooks[prevId];
+		// this asyncId does not exists
+		// cause init runs only once
+		if (
+			// but previous execution does
+			// and this run is directly after
+			it && it.resource &&
+			// next tick hop has no callback
+			!it.resource.callback &&
+			// and if probability == 0
+			// it means it is still 
+			// inside of our context ?
+			it.probability == 0
+			// and also we are able
+			// to check tracing in deep
+			// we must care the following
+			&&
+			prev
+			&&
+			prev[prevId - 1]
+			&&
+			prev[prevId - 1].ctx == it.ctx
+			// &&
+			// !dropsTypes[type]
+		) {
 			
-			// follow the previous
-			ctx         : it.ctx,
-			
-			// but increase the probability
-			probability : it.probability + 1,
-			
-			asyncId,
-			triggerId,
-			
-			type,
-			resource,
-			
-		};
-		saveHooksContext(ctx);
+			const ctx = {
+				
+				// follow the previous
+				ctx         : it.ctx,
+				
+				// but increase the probability
+				probability : it.probability + 1,
+				
+				asyncId,
+				triggerId,
+				
+				type,
+				resource,
+				
+			};
+			saveHooksContext(ctx);
+		}
+	} else {
+		const prev = state.eidHooks[prevId - 1];
+		if (!prev) {
+			return;
+		}
+		// this context 
+		const it = prev[prevId];
+		if (
+			it && it.resource &&
+			it.resource.callback &&
+			it.probability == 0 &&
+			// definetely this is it ;^)
+			it.resource.callback._currentContext == it.currentContext
+		) {
+			const ctx = {
+				ctx         : it.ctx,
+				probability : it.probability + 1,
+				
+				asyncId,
+				triggerId,
+				
+				type,
+				resource,
+				
+			};
+			saveHooksContext(ctx);
+		}
 	}
 };
-
 
 const before = (asyncId) => {
 	// roll up everything
