@@ -96,7 +96,20 @@ const dive = function (context, ctx, brfn, ..._args) {
 			fn = context[ctx];
 			ctx = context;
 			context = brfn;
+		} else if (typeof context == 'function') {
+			fn = context;
+			context = ctx;
+			ctx = brfn;
+			if (_args && _args.length) {
+				brfn = _args[0];
+				if (_args.length > 1) {
+					_args = args.slice(1);
+				}
+			}
 		}
+	}
+	if (typeof fn !== 'function') {
+		return;
 	}
 	const base = function () {
 		const run = fn.bind(ctx || this);
