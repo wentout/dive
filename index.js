@@ -15,12 +15,26 @@
  * 
  */
 
+/**
+ * variable to store our current context
+ * when syncronous code is runnign
+ * for ability to give it by request
+ */
 var currentContext;
+/**
+ * about to change currentContext
+ * just an abstraction layer
+ * @param {any} value 
+ */
 const changeContext = (value) => {
 	currentContext = value;
 	return value;
 };
 
+/**
+ * our current state
+ * all hooks, all contexts
+ */
 const state = {
 	// [asyncId] == ctx
 	asyncIdHooks : {},
@@ -62,6 +76,18 @@ Object.defineProperty(state, 'ctx', {
 });
 
 // basic functionality
+/**
+ * syncronous function call carrator
+ * with function arguments recursion
+ * @param {string} context stuff to put to currentContext
+ * @param {any} ctx "this" for nested calls
+ * @param {boolean} brfn if sync run of wrapped function
+ *                       returns other function
+ *                       here we are able to break
+ *                       that function wrapping
+ * @param {array} _args other arguments for wrapped function call
+ * @param {function} this function for wrapping
+ */
 const dive = function (context, ctx, brfn, ..._args) {
 	let fn = this;
 	if (typeof fn !== 'function') {
@@ -117,6 +143,9 @@ const dive = function (context, ctx, brfn, ..._args) {
 	});	
 });
 
+/**
+ * enable Function.prototype.dive patch
+ */
 dive.enableFunctions = () => {
 	if (Function.prototype.dive) {
 		return;
@@ -130,11 +159,17 @@ dive.enableFunctions = () => {
 	});	
 };
 
+/**
+ * disable Function.prototype.dive patch
+ */
 dive.disableFunctions = () => {
 	delete Function.prototype.dive;
 	delete Function.prototype._dive;
 };
 
+/**
+ * place a pointer of currentContext to global
+ */
 dive.useGlobal = () => {
 	Object.defineProperty(global, 'currentContext', {
 		get () {
@@ -145,13 +180,24 @@ dive.useGlobal = () => {
 	});
 };
 
+/**
+ * enable additional serach through EIDs
+ * when trying to patch current ASYNC context
+ */
 dive.enableEIDs = () => {
 	state.eidsEnabled = true;
 };
+/**
+ * disabling eidsEnabled
+ */
 dive.disableEIDs = () => {
 	state.eidsEnabled = false;
 };
 
+/**
+ * replace current context with other stuff
+ * @param {string} context new context
+ */
 dive.put = (context) => {
 	state.currentContext = context;
 };
@@ -166,6 +212,10 @@ const dropsTypes = ['PROMISE', 'Timeout', 'TickObject'].reduce((o, type) => {
 	return o;
 }, {});
 
+/**
+ * place current situation to state
+ * @param {any} ctx state context
+ */
 const saveHooksContext = (ctx) => {
 	
 	const asyncId   = ctx.asyncId;
@@ -205,6 +255,17 @@ const saveHooksContext = (ctx) => {
 	// }
 };
 
+/**
+ * standard async_hooks init callback
+ * 
+ * this function tries to memorise currentContext
+ * to investigate it from state when it will be necessary
+ * 
+ * @param {number} asyncId 
+ * @param {string} type 
+ * @param {number} triggerId 
+ * @param {any} resource 
+ */
 const init = (asyncId, type, triggerId, resource) => {
 	
 	if (state.currentContext !== undefined) {
@@ -317,6 +378,11 @@ const init = (asyncId, type, triggerId, resource) => {
 	}
 };
 
+/**
+ * standard async_hooks before callback
+ * this function patches currentContext
+ * @param {number} asyncId 
+ */
 const before = (asyncId) => {
 	// roll up everything
 	const eid = dive.eid;
@@ -334,7 +400,11 @@ const before = (asyncId) => {
 	}
 };
 
-
+/**
+ * cleanup method when no tracking
+ * of asyncId is necessary anymore
+ * @param {number} asyncId 
+ */
 const drop = (asyncId) => {
 	
 	// 1. rolling back hook running state
@@ -383,6 +453,9 @@ const drop = (asyncId) => {
 	
 };
 
+/**
+ * stops all tracers for currentContext
+ */
 dive.stopTracing = () => {
 	const ctx = state.currentContext;
 	if (!ctx) {
@@ -412,7 +485,10 @@ dive.stopTracing = () => {
 };
 dive.clean = dive.stopTracing;
 
-
+/**
+ * standard promise async_hook calback
+ * @param {number} asyncId 
+ */
 const promiseResolve = (asyncId) => {
 	if (!state.baseRunning) {
 		drop(asyncId);
