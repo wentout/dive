@@ -92,8 +92,7 @@ Enable Function.prototype.dive patch, so you can do the following:
 const dive = require('context-dive');
 
 const myFn = () => {
-	nestedFn.dive();
-
+	console.log(dive.currentContext);
 };
 // 
 const diveFn = myFn.dive('my context');
