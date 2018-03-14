@@ -33,11 +33,11 @@ const z = (cb) => {
     }, 1000);
 };
 
-const m = dive.call(d, 'qwer')(function (a, b) {
+const m = dive(d, 'qwer')(function (a, b) {
     console.log(dive.currentContext, a, b);
 });
 
-const s = dive.call(z, 'lkjh');
+const s = dive(z, 'lkjh');
 
 s(m);
 
