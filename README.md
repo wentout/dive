@@ -18,23 +18,23 @@ npm i context-dive
 const dive = require('context-dive');
 
 const d = (cb) => {
-	return (t, y) => {
-		console.log(t, y);
-		setTimeout(() => {
-			cb('asdf', 'fdsa');
-		}, 100);
-	};
+    return (t, y) => {
+        console.log(t, y);
+        setTimeout(() => {
+            cb('asdf', 'fdsa');
+        }, 100);
+    };
 };
 
 const z = (cb) => {
-	console.log('currentContext', dive.currentContext);
-	setTimeout(() => {
-		cb('zxcv', 'vcxz');
-	}, 1000);
+    console.log('currentContext', dive.currentContext);
+    setTimeout(() => {
+        cb('zxcv', 'vcxz');
+    }, 1000);
 };
 
 const m = dive.call(d, 'qwer')(function (a, b) {
-	console.log(_currentContext, a, b);
+    console.log(dive.currentContext, a, b);
 });
 
 const s = dive.call(z, 'lkjh');
