@@ -115,6 +115,33 @@ About to place pointer to dive.currentContext to global.
 ## dive.state
 Pointer to everything about dive state mashine. Most of this stuff is availiable by other **dive.[shortcut]**. But, for sure it will give you much more control about how everything works.
 
+```JS
+/**
+ * our current state
+ * all hooks, all contexts
+ */
+const state = {
+	asyncIdHooks : {...},
+	triggerHooks : {...},
+	eidHooks     : {...},
+	tidHooks     : {...},
+	
+	baseRunning  : false,
+	hookRunning  : false,
+	
+	// about to additionally enable
+	// eids for context selection
+	eidsEnabled  : false,
+	
+	// experimental functionality
+	// means I don't know if this is
+	// a good way to do so
+	// for me -- I'm unable to check
+	// seems good, and nobody issued yet
+	experimentalEnabled : true
+};
+```
+
 ### dive.state.currentContext || dive.state.ctx
 The same as **dive.currentContext** || **dive.ctx**.
 
