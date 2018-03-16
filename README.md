@@ -68,7 +68,7 @@ the stuff you will get from pointer to dive
 const dive = require('context-dive');
 ```
 
-## dive.currentContext
+## dive.currentContext || dive.ctx
 Pointer to current context if execution thread is wrapped.
 
 ## dive.enableAsyncHooks()
@@ -112,6 +112,38 @@ Disable Function.prototype.dive patch.
 ## dive.useGlobal()
 About to place pointer to dive.currentContext to global.
 
+## dive.state
+Pointer to everything about dive state mashine. Most of this stuff is availiable by other **dive.[shortcut]**. But, for sure it will give you much more control about how everything works.
+
+### dive.state.currentContext || dive.state.ctx
+The same as **dive.currentContext** || **dive.ctx**.
+
+### dive.state.asyncIdHooks
+Current hash of asyncIDs that called dive.hooks.init with all nested props.
+
+### dive.state.triggerHooks
+Current hash of asyncIDs that triggered dive.hooks.init call with all nested props.
+
+### dive.state.eidHooks
+Current hash of asyncIDs that was running while dive.hooks.init call with all nested props.
+
+### dive.state.tidHooks
+Current hash of asyncIDs that triggered eidHooks while dive.hooks.init call with all nested props.
+
+### dive.state.baseRunning
+If wrapped function itself, or tied~neste callback of this function is running now.
+
+### dive.state.hookRunning
+This mutch state between async_hook.before and async_hook.after, cause it synchrounous code. So, if you have some context seems hook is running or base is running.
+
+### dive.state.eidsEnabled
+The same as **dive.eidsEnabled** below.
+
+## dive.disableExperimental()
+If you wish to disable experimental context matching/wrapping. See more at **state.experimentalEnabled**.
+
+## dive.enableExperimental()
+Experimental context matching/wrapping is enabled by default. No needs to run this method while instantiating dive in your code. Only may be necessary if you did dive.disableExperimental() before.
 
 ## dive.enableEIDs() -- ! only for Development !
 When async hooks enabled there can be situation when context of executin thread will becom empty. This is not a very common situation, I think you will never get it, actually. But, may be if you will get, then this function will help you. It will switch the functionality of seeking context through executinID, if it can't be found via asyncId.
