@@ -52,9 +52,17 @@ const state = {
 	// about to additionally enable
 	// eids for context selection
 	eidsEnabled  : false,
+	
+	// experimental functionality
+	// means I don't know if this is
+	// a good way to do so
+	// for me -- I'm unable to check
+	// seems good, and nobody issued yet
+	experimentalEnabled : true
+	
 };
 
-Object.defineProperty(state, 'currentContext', {
+const currentContextProp = {
 	get () {
 		return currentContext;
 	},
@@ -63,17 +71,10 @@ Object.defineProperty(state, 'currentContext', {
 	},
 	configurable : false,
 	enumerable   : false
-});
-Object.defineProperty(state, 'ctx', {
-	get () {
-		return currentContext;
-	},
-	set (value) {
-		return changeContext(value);
-	},
-	configurable : false,
-	enumerable   : false
-});
+};
+
+Object.defineProperty(state, 'currentContext', currentContextProp);
+Object.defineProperty(state, 'ctx', currentContextProp);
 
 // basic functionality
 /**
@@ -119,12 +120,12 @@ const dive = function (context, ctx, brfn, ..._args) {
 			}
 			return arg;
 		});
-		const prevContext = state.currentContext;
-		state.currentContext = base._currentContext;
+		const prevContext = state.ctx;
+		state.ctx = base._currentContext;
 		state.baseRunning = true;
 		const answer = run(...args);
 		state.baseRunning = false;
-		state.currentContext = prevContext;
+		state.ctx = prevContext;
 		if (typeof answer == 'function' && !brfn) {
 			// return dive.call(answer, context || prevContext);
 			return dive.call(answer, context);
@@ -156,6 +157,23 @@ const dive = function (context, ctx, brfn, ..._args) {
 	});	
 });
 
+Object.defineProperty(dive, '_state', {
+	get () {
+		return state;
+	},
+	configurable : false,
+	enumerable   : false
+});
+
+const ctxProp = {
+	get () {
+		return state.ctx;
+	},
+	configurable : false,
+	enumerable   : true
+};
+Object.defineProperty(dive, 'ctx', ctxProp);
+
 /**
  * enable Function.prototype.dive patch
  */
@@ -180,17 +198,19 @@ dive.disableFunctions = () => {
 	delete Function.prototype._dive;
 };
 
+dive.enableExperimental = () => {
+	state.experimentalEnabled = true;
+};
+dive.disableExperimental = () => {
+	state.experimentalEnabled = false;
+};
+
+
 /**
  * place a pointer of currentContext to global
  */
 dive.useGlobal = () => {
-	Object.defineProperty(global, 'currentContext', {
-		get () {
-			return state.currentContext;
-		},
-		configurable : false,
-		enumerable   : true
-	});
+	Object.defineProperty(global, 'currentContext', ctxProp);
 };
 
 /**
@@ -212,7 +232,7 @@ dive.disableEIDs = () => {
  * @param {string} context new context
  */
 dive.put = (context) => {
-	state.currentContext = context;
+	state.ctx = context;
 };
 
 
@@ -281,7 +301,7 @@ const saveHooksContext = (ctx) => {
  */
 const init = (asyncId, type, triggerId, resource) => {
 	
-	if (state.currentContext !== undefined) {
+	if (state.ctx !== undefined) {
 		
 		// if we have some context
 		// we will save it to hooks storage
@@ -290,7 +310,7 @@ const init = (asyncId, type, triggerId, resource) => {
 			// easy, we definetely
 			// have to dive deeper
 			// with this upon the stage
-			ctx : state.currentContext,
+			ctx : state.ctx,
 			
 			// how many context were nested
 			// from this current context
@@ -308,7 +328,10 @@ const init = (asyncId, type, triggerId, resource) => {
 		};
 		return saveHooksContext(ctx);
 	}
-		
+	
+	if (!state.experimentalEnabled) {
+		return;
+	}
 	// maybe new context born from calls
 	const prevId = asyncId - 1;
 	
@@ -408,8 +431,8 @@ const before = (asyncId) => {
 		// and able to apply it to new code
 		state.hookRunning = true;
 		// rolling forward
-		it.mix = state.currentContext;
-		state.currentContext = it.ctx;
+		it.mix = state.ctx;
+		state.ctx = it.ctx;
 	}
 };
 
@@ -432,7 +455,7 @@ const drop = (asyncId) => {
 	
 	let triggerId;
 	if (aidHook) {
-		state.currentContext = state.asyncIdHooks[asyncId].mix;
+		state.ctx = state.asyncIdHooks[asyncId].mix;
 		triggerId = state.asyncIdHooks[asyncId].triggerId;
 		delete state.asyncIdHooks[asyncId];
 		delete state.asyncIdHooks[eid];
@@ -470,7 +493,7 @@ const drop = (asyncId) => {
  * stops all tracers for currentContext
  */
 dive.stopTracing = () => {
-	const ctx = state.currentContext;
+	const ctx = state.ctx;
 	if (!ctx) {
 		return;
 	}
@@ -493,7 +516,7 @@ dive.stopTracing = () => {
 			}
 		});
 	});
-	state.currentContext = undefined;
+	state.ctx = undefined;
 	return ctx;
 };
 dive.clean = dive.stopTracing;
@@ -505,7 +528,7 @@ dive.clean = dive.stopTracing;
 const promiseResolve = (asyncId) => {
 	if (!state.baseRunning) {
 		drop(asyncId);
-		state.currentContext = undefined;
+		state.ctx = undefined;
 	}
 };
 
