@@ -1,23 +1,23 @@
 'use strict';
 
 const util = require('util');
+const fs = require('fs');
+
 const dive = require('./index');
-
-
 var count = 0;
 
 const line = '-'.repeat(75);
 const makeReportHead = (mark) => {
-	process.stdout.write(`\n\nSTART ${mark}\n\n`);
-	process.stdout.write('tid -> eid : |  context :  | mark  -> [ trace.step ] : | log args :\n');
-	process.stdout.write(`${line}\n`);
+	fs.writeSync(1, `\n\nSTART ${mark}\n\n`);
+	fs.writeSync(1, 'tid -> eid : |  context :  | mark  -> [ trace.step ] : | log args :\n');
+	fs.writeSync(1, `${line}\n`);
 };
 
 const log = (mark, ...args) => {
 	mark = `${mark}`.padEnd(25);
 	const eid = `${dive.tid} -> ${dive.eid}`.padStart(12);
 	const ctx = `${dive.currentContext}`.padStart(10).padEnd(11);
-	process.stdout.write(`\n${eid} | ${ctx} | ${mark} | ${args.join(' ')}`);
+	fs.writeSync(1, `\n${eid} | ${ctx} | ${mark} | ${args.join(' ')}`);
 };
 
 const d = (cb, trace = ++count) => {
@@ -92,12 +92,12 @@ const test = (mark, cb) => {
 	d(m)('binded', 'context');
 	
 	setTimeout(() => {
-		process.stdout.write(`\n\nTOTAL ${mark}\n`);
-		process.stdout.write(line);
+		fs.writeSync(1, `\n\nTOTAL ${mark}\n`);
+		fs.writeSync(1, line);
 		log('dive.asyncIdHooks', util.inspect(dive.asyncIdHooks), '\n');
 		log('dive.triggerHooks', util.inspect(dive.triggerHooks), '\n');
 		log('dive.currentContext', dive.currentContext);
-		process.stdout.write('\n\n');
+		fs.writeSync(1, '\n\n');
 		if (typeof cb == 'function') cb();
 	}, 3000);
 	

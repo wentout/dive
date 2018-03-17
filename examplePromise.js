@@ -4,18 +4,24 @@
 // Great Thanks to Martín Valdés de León
 
 const util = require('util');
+const fs = require('fs');
+
 const dive = require('./index.js');
 dive.enableAsyncHooks();
 dive.enableFunctions();
 
 
+// process.on('unhandledRejection', () => {
+	// fs.writeSync(1, `>>> unhandledRejection [ ${dive.currentContext} ]\n`);
+// });
+
 const promiseTest1 = (cb) => {
-	process.stdout.write('\n PROMISE TEST -----------------------\n');
+	fs.writeSync(1, '\n PROMISE TEST -----------------------\n');
 	
 	// Simulate some stuff
 	const stuff = x => {
 		const answer = 2 + x;
-		process.stdout.write(`>>> ctx [ ${dive.currentContext} ]  | answer ${answer}\n`);
+		fs.writeSync(1, `>>> ctx [ ${dive.currentContext} ]  | answer ${answer}\n`);
 		return answer;
 	};
 	
@@ -32,7 +38,7 @@ const promiseTest1 = (cb) => {
 	};
 	
 	const nestedProblems = x => () => {
-		process.stdout.write(`>>> nestedProblems context [ ${dive.currentContext} ]\n`);
+		fs.writeSync(1, `>>> nestedProblems context [ ${dive.currentContext} ]\n`);
 		// After the third call, go to an eventual `delay(100)` that throws
 		if (x === 3) return Promise.resolve(1).then(delay(100));
 	
@@ -57,7 +63,7 @@ const promiseTest1 = (cb) => {
 			.then(stuff)
 			.then(stuff)
 			.catch(() => {
-				process.stdout.write(`>>> promise context [ ${dive.currentContext} ]\n`);
+				fs.writeSync(1, `>>> promise context [ ${dive.currentContext} ]\n`);
 				// dive.stopTracing();
 				cb();
 			});
@@ -66,8 +72,9 @@ const promiseTest1 = (cb) => {
 };
 
 
+
 const promiseTest2 = () => {
-	process.stdout.write('\n AWAIT TEST -----------------------\n');
+	fs.writeSync(1, '\n AWAIT TEST -----------------------\n');
 	function resolveAfter2Seconds() {
 		return new Promise(resolve => {
 			setTimeout(() => {
@@ -77,9 +84,9 @@ const promiseTest2 = () => {
 	};
 	
 	var asyncCall = async function () {
-		process.stdout.write('\async calling\n');
+		fs.writeSync(1, '\async calling\n');
 		var result = await resolveAfter2Seconds();
-		process.stdout.write(`>>> async/await ${result} [ ${dive.currentContext} ]\n`);
+		fs.writeSync(1, `>>> async/await ${result} [ ${dive.currentContext} ]\n`);
 		// dive.stopTracing();
 	};
 	asyncCall();
@@ -97,16 +104,16 @@ setTimeout(() => {
 	});
 	
 	setTimeout(() => {
-		process.stdout.write('\nNext must be [ undefined ]\n');
+		fs.writeSync(1, '\nNext must be [ undefined ]\n');
 		promiseTest1(() => {
 			promiseTest2();
 		});
 		setTimeout(() => {
-			process.stdout.write(`dive.currentContext ${dive.currentContext}\n`);
-			process.stdout.write(`dive.asyncIdHooks ${util.inspect(dive.asyncIdHooks)}\n`);
-			// process.stdout.write(`dive.eidHooks ${util.inspect(dive.eidHooks)}\n`);
-			process.stdout.write(`dive.triggerHooks ${util.inspect(dive.triggerHooks)}\n`);
-			process.stdout.write(`dive.tidHooks ${util.inspect(dive.tidHooks)}\n`);
+			fs.writeSync(1, `dive.currentContext ${dive.currentContext}\n`);
+			fs.writeSync(1, `dive.asyncIdHooks ${util.inspect(dive.asyncIdHooks)}\n`);
+			// fs.writeSync(1, `dive.eidHooks ${util.inspect(dive.eidHooks)}\n`);
+			fs.writeSync(1, `dive.triggerHooks ${util.inspect(dive.triggerHooks)}\n`);
+			fs.writeSync(1, `dive.tidHooks ${util.inspect(dive.tidHooks)}\n`);
 		}, 1000);
 	}, 1000);
 }, 1000);

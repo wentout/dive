@@ -59,7 +59,6 @@ const state = {
 	// for me -- I'm unable to check
 	// seems good, and nobody issued yet
 	experimentalEnabled : true
-	
 };
 
 const currentContextProp = {
@@ -165,15 +164,6 @@ Object.defineProperty(dive, '_state', {
 	enumerable   : false
 });
 
-const ctxProp = {
-	get () {
-		return state.ctx;
-	},
-	configurable : false,
-	enumerable   : true
-};
-Object.defineProperty(dive, 'ctx', ctxProp);
-
 /**
  * enable Function.prototype.dive patch
  */
@@ -205,6 +195,14 @@ dive.disableExperimental = () => {
 	state.experimentalEnabled = false;
 };
 
+const ctxProp = {
+	get () {
+		return state.ctx;
+	},
+	configurable : false,
+	enumerable   : true
+};
+Object.defineProperty(dive, 'ctx', ctxProp);
 
 /**
  * place a pointer of currentContext to global
@@ -566,7 +564,15 @@ if (async_hooks) {
 		return dive;
 	};
 	dive.disableAsyncHooks = () => {
-		state.asyncIdHooks = {};
+		[
+			'asyncIdHooks',
+			'triggerHooks',
+			'eidsEnabled',
+			'eidHooks',
+			'tidHooks'
+		].forEach(it => {
+			state[it] = {};
+		});
 		asyncHook.disable();
 		return dive;
 	};
