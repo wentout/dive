@@ -59,6 +59,8 @@ For more details run:
 node example.js
 ```
 
+# Promise Note
+As you can see from **examplePromise**, you will get context only for good parts of code and for .catch. It means you'd better retrive context before promise calls. I'm still working on it...
 
 # API
 
