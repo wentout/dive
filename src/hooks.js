@@ -43,7 +43,9 @@ const init = (asyncId, type, triggerId, resource) => {
 		promiseCase = type === 'promise' && state.asyncIdHooks[triggerId];
 		// seems that tick produced by our context
 		nextTickCase = type === 'tickobject' && state.asyncIdHooks[asyncId - 1];
-		if (!(promiseCase || nextTickCase)) {
+		if (!(promiseCase || (nextTickCase && (
+			!!state.triggerHooks[triggerId] || !!state.asyncIdHooks[nextTickCase.triggerId]
+		)))) {
 			// cause nothing to track from here
 			return;
 		}
@@ -53,7 +55,7 @@ const init = (asyncId, type, triggerId, resource) => {
 	if (state.asyncIdHooks[asyncId]) {
 		throw errors.ContextCorrupted('called twice');
 	}
-
+	
 	const contextId = nextTickCase ? nextTickCase.id : state.context.id;
 
 	if (!Number.isInteger(contextId)) {
