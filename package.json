@@ -1,11 +1,23 @@
 {
   "name": "context-dive",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "dive to async event-loop calls with context",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "node example.js"
+    "build": "rm -rf ./dist && mkdir ./dist && cp -r ./src/* ./dist",
+    "test": "node example/index.js && node example/promise.js"
   },
+  "files": [
+    "README.md",
+    "src",
+    "example"
+  ],
+  "directories": {
+    "lib": "dist/",
+    "src": "src/",
+    "example": "example/"
+  },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wentout/dive.git"
