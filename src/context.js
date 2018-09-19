@@ -351,7 +351,7 @@ Object.defineProperty(module.exports, 'create', {
 
 			Object.defineProperty(props, 'value', {
 				get() {
-					let pos = runningContexts[contextPosition].pos;
+					const pos = runningContexts[contextPosition].pos;
 					return runningContextsValues[pos];
 				},
 				configurable: false,

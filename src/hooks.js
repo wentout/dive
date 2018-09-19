@@ -37,8 +37,13 @@ const init = (asyncId, type, triggerId, resource) => {
 
 	type = type.toLowerCase();
 
+	var promiseCase, nextTickCase;
 	if (!state.hookRunning && !state.baseRunning) {
-		if (!(type === 'promise' && state.asyncIdHooks[triggerId])) {
+		// promises are based on triggerId
+		promiseCase = type === 'promise' && state.asyncIdHooks[triggerId];
+		// seems that tick produced by our context
+		nextTickCase = type === 'tickobject' && state.asyncIdHooks[asyncId - 1];
+		if (!(promiseCase || nextTickCase)) {
 			// cause nothing to track from here
 			return;
 		}
@@ -47,6 +52,12 @@ const init = (asyncId, type, triggerId, resource) => {
 
 	if (state.asyncIdHooks[asyncId]) {
 		throw errors.ContextCorrupted('called twice');
+	}
+
+	const contextId = nextTickCase ? nextTickCase.id : state.context.id;
+
+	if (!Number.isInteger(contextId)) {
+		return;
 	}
 
 	//  eid is equal to triggerId here
@@ -70,7 +81,7 @@ const init = (asyncId, type, triggerId, resource) => {
 		eid: eid(),
 		tid: tid(),
 
-		id: 0 + state.context.id,
+		id: contextId,
 
 		stage: 'init',
 		ctxFail: false
@@ -85,17 +96,17 @@ const init = (asyncId, type, triggerId, resource) => {
 	// cause when we will get into it,
 	// we will unable to touch the context
 	if (
-		it.type == 'promise' &&
+		it.type === 'promise' &&
 		it.resource &&
 		it.resource.promise
 	) {
 		it.resource.promise._diveContextId = it.id;
 	}
-	
+
 	showDebugMark('INIT', it);
-	
+
 	state.context.counters(it.id).init++;
-	
+
 };
 
 
@@ -159,7 +170,7 @@ const after = (asyncId) => {
 
 	if (!it) {
 		if (state.hookRunning) {
-			if (state.runningHookId == asyncId) {
+			if (state.runningHookId === asyncId) {
 				// Probably we've got uncaughtException!
 				state.hookRunning = false;
 			} else {
@@ -190,10 +201,10 @@ const after = (asyncId) => {
 
 	it.stage = 'after';
 	state.context.counters(it.id).after++;
-	
+
 	state.hookRunning = false;
 	state.context.unset();
-	
+
 	if (state.trace.length) {
 		const selectAsyncId = state.trace.slice(-1)[0];
 		const selectIt = state.asyncIdHooks[selectAsyncId];
@@ -240,7 +251,7 @@ const destroy = (asyncId) => {
 	// Definetely delete!
 	it.resource = undefined;
 	delete it.resource;
-	
+
 	state.context.counters(it.id).destroy++;
 };
 
