@@ -12,7 +12,7 @@ This module allows you to wrap some execution context context via **[async_hooks
 
 Using this module you are able to acheive the following functionality:
 
-1. CLS~TLS : Continuation~Thread Local Storage ([wikipedia link](https://en.wikipedia.org/wiki/Thread-local_storage)).
+1. CLS/TLS : Continuation/Thread Local Storage ([wikipedia link](https://en.wikipedia.org/wiki/Thread-local_storage)).
 2. Perfomance measuring, based on the top of **Dived Context** we are runningn in
 3. Meaningfull UncaughtException and UnhandledRejection extras, based on CLS.
 
