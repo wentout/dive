@@ -4,7 +4,7 @@
 
 ## V 1.1.8 Post Mortem
 
-Inspite that V 2 utilise the Core Concept of v 1.1.8, the way old version was made is odd. I rid of all that old code with complete new bundle. The API is about 50% the same, and concept is 100% the same. You can find old documentation *here*
+Inspite that V 2 utilise the Core Concept of v 1.1.8, the way old version was made is odd. I rid of all that old code with complete new bundle. The API is about 50% the same, and concept is 100% the same. You can find old documentation [**here**](https://github.com/wentout/dive/wiki/v-1.1.8-documentation)
 
 ## V 2 Documentation
 
