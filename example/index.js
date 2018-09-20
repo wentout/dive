@@ -1,5 +1,6 @@
 'use strict';
 
+const util = require('util');
 const dive = require('../src/index').enableAsyncHooks();
 // dive.enableFunctions();
 
@@ -10,12 +11,12 @@ process.on('uncaughtException', (error) => {
 	process._rawDebug(dive.ctx);
 	process._rawDebug(dive.state.runningHookId, dive.eid, dive.tid);
 	process._rawDebug(dive.state.context.counters());
-	if (dive.context.currentOpts.perfomanceOn) {
+	if (dive.context && dive.context.currentOpts.perfomanceOn) {
 		dive.context.measure((error, duration) => {
 			process._rawDebug('Error Duration: ', duration);
 		});
 	}
-	process._rawDebug(require('util').inspect(process.memoryUsage()));
+	process._rawDebug(util.inspect(process.memoryUsage()));
 	// process.exit(1);
 });
 
@@ -87,8 +88,15 @@ for (var i = 1; i < 2; i++) {
 			setTimeout(() => {
 				process._rawDebug(dive.ctx);
 				process._rawDebug(require('util').inspect(data.keywords));
-				const lastContext = dive.emerge();
-				process._rawDebug('lastContext', lastContext);
+				// const lastContext = dive.emerge();
+				dive.emerge((error, data) => {
+					process._rawDebug('>>> Emerge Trace :\n');
+					Object.entries(data).forEach(entry => {
+						const [name, value] = entry;
+						process._rawDebug(`* --- ${name.padEnd(11)} : ${util.inspect(value)}`);
+					});
+					process._rawDebug('\n');
+				});
 			}, 189);
 		};
 
