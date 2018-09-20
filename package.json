@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "rm -rf ./dist && mkdir ./dist && cp -r ./src/* ./dist",
-    "test": "node example/index.js && node example/promise.js"
+    "test": "node example/index.js && node example/promise.js",
+    "postinstall": "npm run build"
   },
   "files": [
     "README.md",
