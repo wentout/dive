@@ -150,7 +150,12 @@ const cleanup = (id) => {
 		delete state.promiseHooks[asyncId];
 	});
 	
+	trace[id] = undefined;
+	delete trace[id];
+	
 	state.trace = [];
+	
+	module.exports.hookRunning = false;
 	
 };
 

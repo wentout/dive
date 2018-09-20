@@ -88,7 +88,7 @@ const dive = function (fn, value, opts = optsDefaults) {
 		if (!opts.skipCbArg) {
 			patchingInProgress = true;
 			// appying dive to all incoming functions;
-			args.map(arg => {
+			args = args.map(arg => {
 				if (typeof arg == 'function') {
 					arg = dive(arg, contextValue, opts);
 				}

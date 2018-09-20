@@ -43,6 +43,16 @@ const changeContext = (value) => {
 	return value;
 };
 
+Object.defineProperty(module.exports, 'self', {
+	get() {
+		return (id = ID.current) => {
+			return runningContexts[id];
+		};
+	},
+	configurable: false,
+	enumerable: false
+});
+
 const valueDescriptor = {
 	get() {
 		if (runningContexts[ID.current]) {
@@ -462,4 +472,3 @@ Object.defineProperty(module.exports, 'destroy', {
 	configurable: false,
 	enumerable: true
 });
-
