@@ -21,6 +21,85 @@ const showDebugMark = (mark, it) => {
 	}
 };
 
+const getIdFromState = () => {
+	if (Number.isInteger(state.context.id)) {
+		if (!state.hookRunning && !state.baseRunning) {
+			throw errors.ContextCorrupted('context leakage detected');
+		}
+	} else {
+		if (state.hookRunning) {
+			process._rawDebug(state.runningHookId);
+			throw errors.ContextCorrupted('no context with running hook');
+		}
+		if (state.baseRunning) {
+			throw errors.ContextCorrupted('no context through base function');
+		}
+		return null;
+	}
+	
+	return state.context.id;
+};
+
+const contextIdTypeCalcs = {
+
+	
+	promise (asyncId, triggerId) {
+		// promises are based on triggerId
+		const it = state.asyncIdHooks[triggerId];
+		if (!it) {
+			return null;
+		}
+		return it.id;
+	},
+	
+	tickobject (asyncId, triggerId) {
+		const prevId = asyncId - 1;
+		const it = state.asyncIdHooks[prevId];
+		if (!it) {
+			return null;
+		}
+		
+		// may that tick produced by our context ?
+		const probe = state.asyncIdHooks[prevId - 1];
+		if (!probe) {
+			return null;
+		}
+		
+		// process._rawDebug('\n\n--->TICK', asyncId, triggerId, prevId, it.id, it.triggerId, !!probe);
+		
+		if (
+			probe.triggerId === it.triggerId ||
+			triggerId === it.triggerId ||
+			probe.eid === it.tid ||
+			state.asyncIdHooks[probe.triggerId]
+		) {
+			return it.id;
+		// // } else {
+		// // 	process._rawDebug('\nIT', it);
+		// // 	process._rawDebug('\nPROBE', probe);
+		}
+		return null;
+		// return it.id;
+		
+	}
+};
+
+const getContextId = (type, asyncId, triggerId) => {
+	
+	const stateId = getIdFromState();
+	if (Number.isInteger(stateId)) {
+		return stateId;
+	}
+	
+	
+	if (!contextIdTypeCalcs[type]) {
+		// process._rawDebug('DIG ->>>>>>>>>>>>>>>>', type, asyncId, triggerId);
+		return null;
+	}
+	
+	return contextIdTypeCalcs[type](asyncId, triggerId);
+	
+};
 
 /**
  * standard async_hooks init callback
@@ -35,18 +114,17 @@ const showDebugMark = (mark, it) => {
  */
 const init = (asyncId, type, triggerId, resource) => {
 
-	type = type.toLowerCase();
-
-	if (!state.hookRunning && !state.baseRunning) {
-		if (!(type === 'promise' && state.asyncIdHooks[triggerId])) {
-			// cause nothing to track from here
-			return;
-		}
-		// otherwise we go below
-	}
-
 	if (state.asyncIdHooks[asyncId]) {
 		throw errors.ContextCorrupted('called twice');
+	}
+
+	type = type.toLowerCase();
+
+	const contextId = getContextId(type, asyncId, triggerId);
+	
+	if (!Number.isInteger(contextId)) {
+		// cause nothing to track from here
+		return;
 	}
 
 	//  eid is equal to triggerId here
@@ -70,7 +148,7 @@ const init = (asyncId, type, triggerId, resource) => {
 		eid: eid(),
 		tid: tid(),
 
-		id: 0 + state.context.id,
+		id: contextId,
 
 		stage: 'init',
 		ctxFail: false
@@ -85,17 +163,17 @@ const init = (asyncId, type, triggerId, resource) => {
 	// cause when we will get into it,
 	// we will unable to touch the context
 	if (
-		it.type == 'promise' &&
+		it.type === 'promise' &&
 		it.resource &&
 		it.resource.promise
 	) {
 		it.resource.promise._diveContextId = it.id;
 	}
-	
+
 	showDebugMark('INIT', it);
-	
+
 	state.context.counters(it.id).init++;
-	
+
 };
 
 
@@ -159,7 +237,7 @@ const after = (asyncId) => {
 
 	if (!it) {
 		if (state.hookRunning) {
-			if (state.runningHookId == asyncId) {
+			if (state.runningHookId === asyncId) {
 				// Probably we've got uncaughtException!
 				state.hookRunning = false;
 			} else {
@@ -190,10 +268,10 @@ const after = (asyncId) => {
 
 	it.stage = 'after';
 	state.context.counters(it.id).after++;
-	
+
 	state.hookRunning = false;
 	state.context.unset();
-	
+
 	if (state.trace.length) {
 		const selectAsyncId = state.trace.slice(-1)[0];
 		const selectIt = state.asyncIdHooks[selectAsyncId];
@@ -240,7 +318,7 @@ const destroy = (asyncId) => {
 	// Definetely delete!
 	it.resource = undefined;
 	delete it.resource;
-	
+
 	state.context.counters(it.id).destroy++;
 };
 

@@ -11,11 +11,7 @@ process.on('uncaughtException', (error) => {
 	process._rawDebug(dive.ctx);
 	process._rawDebug(dive.state.runningHookId, dive.eid, dive.tid);
 	process._rawDebug(dive.state.context.counters());
-	if (dive.context && dive.context.currentOpts.perfomanceOn) {
-		dive.context.measure((error, duration) => {
-			process._rawDebug('Error Duration: ', duration);
-		});
-	}
+	process._rawDebug('Error Duration: ', dive.context.measure);
 	process._rawDebug(util.inspect(process.memoryUsage()));
 	// process.exit(1);
 });
@@ -57,7 +53,7 @@ for (var i = 1; i < 2; i++) {
 			}, 1111);
 		};
 		setTimeout(() => {
-			dive(fn, `ctx_1_${n}`, { debugMode, onPerfomance : true })(() => {
+			dive(fn, `ctx_1_${n}`, { debugMode, onPerfomance: true })(() => {
 				setTimeout(() => {
 					showMark('dive.ctx_8_1');
 					throw new Error('<<<<<<<<<<<<<<<<<<<<<<<< uncaught ctx_1_1');
@@ -90,28 +86,22 @@ for (var i = 1; i < 2; i++) {
 				process._rawDebug(dive.ctx);
 				process._rawDebug(require('util').inspect(data.keywords));
 				// const lastContext = dive.emerge();
-				dive.emerge((error, data) => {
-					process._rawDebug('>>> Emerge Trace :\n');
-					Object.entries(data).forEach(entry => {
-						const [name, value] = entry;
-						process._rawDebug(`* --- ${name.padEnd(11)} : ${util.inspect(value)}`);
-					});
-					process._rawDebug('\n');
+				const emergeData = dive.emerge();
+				process._rawDebug('>>> Emerge Trace :\n');
+				Object.entries(emergeData).forEach(entry => {
+					const [name, value] = entry;
+					process._rawDebug(`* --- ${name.padEnd(11)} : ${util.inspect(value)}`);
 				});
+				process._rawDebug('\n');
 			}, 189);
 		};
 
 		dive(zfn, `ctx_2_${n}`, {
 			debugMode,
 			// debugMode : true,
-			onPerfomance (error, duration) {
-				process._rawDebug(`Final Duration: ${duration}`);
-			}
 		})()(() => {
 			setImmediate(() => {
-				dive.context.measure((error, duration) => {
-					process._rawDebug('Measured Duration: ', duration);
-				});
+				process._rawDebug('Measured Duration: ', dive.context.measure);
 				require('fs').readFile('./package.json', (err, data) => {
 					process.nextTick(() => {
 						zdfn(JSON.parse(data.toString()));

@@ -143,39 +143,25 @@ const dive = function (fn, value, opts = optsDefaults) {
  * stops all tracing
  * and remove context itself
  */
-const emerge = (id = context.id, cb) => {
+const emerge = (id = context.id) => {
 	var lastContext;
-
-	if (typeof id === 'function') {
-		cb = id;
-		id = context.id;
-	}
 
 	if (!Number.isInteger(id)) {
 		const error = errors.NoContextAvail();
-		if (typeof cb === 'function') {
-			cb(error, null);
-		}
 		return error;
-	}
-	if (typeof cb === 'function') {
-		const counters = state.context.counters();
-		context.measureById(id, (error, duration) => {
-			if (error) {
-				return cb(error, null);
-			}
-			cb(null, {
-				duration,
-				counters,
-				lastContext
-			});
-		});
 	}
 
 	lastContext = context.destroy(id);
 	state.cleanup(id);
 
-	return lastContext;
+	const counters = state.context.counters();
+	const duration = context.measureById(id);
+
+	return {
+		duration,
+		counters,
+		lastContext
+	};
 };
 
 dive.emerge = emerge;

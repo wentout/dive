@@ -37,9 +37,9 @@ const optsDefaults = {
  */
 
 const dive = function (fn, value, opts = optsDefaults) {
-	
+
 	opts = Object.assign({}, optsDefaults, opts);
-	
+
 	// get rid of dive while diving
 	// cause we can't handle go deeper
 	if (context.value && !state.baseRunning) {
@@ -75,11 +75,11 @@ const dive = function (fn, value, opts = optsDefaults) {
 	contextValue = context.select(contextId);
 
 	const base = function (...args) {
-		
-		if(!context.basePassed) {
+
+		if (!context.basePassed) {
 			context.basePassed = true;
 		}
-		
+
 		state.baseRunning = true;
 
 		const prevContext = context.id;
@@ -88,7 +88,7 @@ const dive = function (fn, value, opts = optsDefaults) {
 		if (!opts.skipCbArg) {
 			patchingInProgress = true;
 			// appying dive to all incoming functions;
-			args.map(arg => {
+			args = args.map(arg => {
 				if (typeof arg == 'function') {
 					arg = dive(arg, contextValue, opts);
 				}
@@ -144,14 +144,24 @@ const dive = function (fn, value, opts = optsDefaults) {
  * and remove context itself
  */
 const emerge = (id = context.id) => {
+	var lastContext;
+
 	if (!Number.isInteger(id)) {
-		return;
+		const error = errors.NoContextAvail();
+		return error;
 	}
 
-	const lastContext = context.destroy(id);
+	lastContext = context.destroy(id);
 	state.cleanup(id);
 
-	return lastContext;
+	const counters = state.context.counters();
+	const duration = context.measureById(id);
+
+	return {
+		duration,
+		counters,
+		lastContext
+	};
 };
 
 dive.emerge = emerge;

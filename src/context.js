@@ -1,9 +1,6 @@
 'use strict';
 
-const {
-	performance,
-	PerformanceObserver
-} = require('perf_hooks');
+const { performance } = require('perf_hooks');
 
 const errors = require('./errors');
 const hooks = require('./hooks');
@@ -147,6 +144,22 @@ Object.defineProperty(module.exports, 'currentOpts', {
 	configurable: false,
 	enumerable: true
 });
+Object.defineProperty(module.exports, 'basePassed', {
+	get() {
+		if (runningContexts[ID.current]) {
+			return runningContexts[ID.current].basePassed;
+		}
+		return undefined;
+	},
+	set() {
+		if (runningContexts[ID.current]) {
+			return runningContexts[ID.current].basePassed = true;
+		}
+		return undefined;
+	},
+	configurable: false,
+	enumerable: true
+});
 
 Object.defineProperty(module.exports, 'counters', {
 	get() {
@@ -161,32 +174,17 @@ Object.defineProperty(module.exports, 'counters', {
 	enumerable: true
 });
 
-const measureById = (idForValue, cb) => {
-
+const measureById = (idForValue) => {
 	const it = runningContexts[idForValue];
 	if (!it) {
-		return cb(new Error('this context does not exists'));
+		return new Error('this context does not exists');
 	}
 
 	const opts = it.opts;
 	if (opts.destroyed) {
-		return cb(new Error('this context was already destryed'));
+		return new Error('this context was already destryed');
 	}
-
-	if (!opts.perfomanceOn) {
-		return cb(new Error('perfomance is off for this context'));
-	}
-
-	opts.measuringCb = cb;
-
-	const stopName = `DiveTrack-${performance.now()}`;
-	performance.mark(stopName);
-	performance.measure(
-		stopName,
-		it.perfomanceMarks.start,
-		stopName
-	);
-
+	return performance.now() - it.startTime;
 };
 
 Object.defineProperty(module.exports, 'measureById', {
@@ -198,12 +196,10 @@ Object.defineProperty(module.exports, 'measureById', {
 });
 Object.defineProperty(module.exports, 'measure', {
 	get() {
-		return (cb) => {
-			if (!runningContexts[ID.current]) {
-				return cb(new Error('out of context'));
-			}
-			measureById(ID.current, cb);
-		};
+		if (!runningContexts[ID.current]) {
+			return new Error('out of context');
+		}
+		return measureById(ID.current);
 	},
 	configurable: false,
 	enumerable: true
@@ -308,7 +304,8 @@ Object.defineProperty(module.exports, 'create', {
 					before: 0,
 					after: 0,
 					destroy: 0
-				}
+				},
+				startTime: null
 			};
 
 			if (opts.debugMode) {
@@ -321,45 +318,6 @@ Object.defineProperty(module.exports, 'create', {
 			const contextPosition = runningContexts.push(props) - 1;
 			if (contextPosition !== valuePosition) {
 				throw errors.ContextCorrupted();
-			}
-			if (typeof opts.onPerfomance !== 'undefined') {
-
-				opts.perfomanceOn = true;
-				const perfId = `${performance.now()}`;
-				const perfName = `DiveContext-${contextPosition}-${perfId}`;
-				props.perfomanceMarks = {
-					id: perfId,
-					name: perfName,
-					start: `${perfName}-Started`,
-					stop: `${perfName}-End`,
-					startTime: performance.now(),
-					data: null
-				};
-				const obs = new PerformanceObserver((list, observer) => {
-					const entries = list.getEntries();
-					if (!Array.isArray(entries)) {
-						return null;
-					}
-					const entry = entries[0];
-					if (!entry || !entry.duration) {
-						return null;
-					}
-					const cb = (opts.measuringCb || opts.onPerfomance);
-					if (typeof cb == 'function') {
-						const diff = entry.duration - props.perfomanceMarks.startTime;
-						cb(null, diff);
-						// cb(null, entry.duration);
-					}
-					if (opts.measuringCb) {
-						opts.measuringCb = undefined;
-						delete opts.measuringCb;
-					}
-					if (destroyed) {
-						performance.clearMarks();
-						observer.disconnect();
-					}
-				});
-				obs.observe({ entryTypes: ['measure'], buffered: true });
 			}
 
 			Object.defineProperty(props, 'value', {
@@ -377,10 +335,7 @@ Object.defineProperty(module.exports, 'create', {
 				},
 				set() {
 					basePassed = true;
-					if (opts.perfomanceOn) {
-						performance.mark(props.perfomanceMarks.start);
-						props.perfomanceMarks.startTime = performance.now();
-					}
+					props.startTime = performance.now();
 				},
 				configurable: false,
 				enumerable: true
@@ -441,15 +396,6 @@ const destroy = (id = ID.current) => {
 	const it = runningContexts[id];
 	if (!runningContexts[id]) {
 		throw errors.ContextDoesNotExists(`context ID : ${id}`);
-	}
-
-	if (it.opts.perfomanceOn) {
-		performance.mark(it.perfomanceMarks.stop);
-		performance.measure(
-			it.perfomanceMarks.name,
-			it.perfomanceMarks.start,
-			it.perfomanceMarks.stop
-		);
 	}
 
 	const lastContextValue = runningContexts[id].value;
