@@ -24,7 +24,7 @@ setTimeout(() => {
 	dive;
 	process._rawDebug(Object.keys(dive.state.asyncIdHooks).length);
 	process._rawDebug('finished');
-}, 3000);
+}, 10000);
 
 const showMark = (/* mark */) => {
 	// process._rawDebug(mark, dive.context.id, dive.ctx, dive.eid, dive.tid, dive.state.hookRunning, dive.state.runningHookId);
@@ -56,13 +56,14 @@ for (var i = 1; i < 2; i++) {
 				}, 175);
 			}, 1111);
 		};
-
-		dive(fn, `ctx_1_${n}`, { debugMode, onPerfomance : true })(() => {
-			setTimeout(() => {
-				showMark('dive.ctx_8_1');
-				throw new Error('<<<<<<<<<<<<<<<<<<<<<<<< uncaught ctx_1_1');
-			}, 299);
-		});
+		setTimeout(() => {
+			dive(fn, `ctx_1_${n}`, { debugMode, onPerfomance : true })(() => {
+				setTimeout(() => {
+					showMark('dive.ctx_8_1');
+					throw new Error('<<<<<<<<<<<<<<<<<<<<<<<< uncaught ctx_1_1');
+				}, 299);
+			});
+		}, 5000);
 		dive(fn, `ctx_3_${n}`, { debugMode })(() => {
 			setTimeout(() => {
 				showMark('dive.ctx_8_2');

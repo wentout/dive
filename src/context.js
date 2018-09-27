@@ -332,6 +332,7 @@ Object.defineProperty(module.exports, 'create', {
 					name: perfName,
 					start: `${perfName}-Started`,
 					stop: `${perfName}-End`,
+					startTime: performance.now(),
 					data: null
 				};
 				const obs = new PerformanceObserver((list, observer) => {
@@ -345,7 +346,9 @@ Object.defineProperty(module.exports, 'create', {
 					}
 					const cb = (opts.measuringCb || opts.onPerfomance);
 					if (typeof cb == 'function') {
-						cb(null, entry.duration);
+						const diff = entry.duration - props.perfomanceMarks.startTime;
+						cb(null, diff);
+						// cb(null, entry.duration);
 					}
 					if (opts.measuringCb) {
 						opts.measuringCb = undefined;
@@ -376,6 +379,7 @@ Object.defineProperty(module.exports, 'create', {
 					basePassed = true;
 					if (opts.perfomanceOn) {
 						performance.mark(props.perfomanceMarks.start);
+						props.perfomanceMarks.startTime = performance.now();
 					}
 				},
 				configurable: false,

@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "rm -rf ./dist && mkdir ./dist && cp -r ./src/* ./dist",
-    "test": "node example/index.js && node example/promise.js",
+    "example": "node example/index.js && node example/promise.js",
+    "test": "mocha",
     "postinstall": "npm run build"
   },
   "files": [
@@ -16,9 +17,9 @@
   "directories": {
     "lib": "dist/",
     "src": "src/",
-    "example": "example/"
+    "example": "example/",
+    "test": "test/"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wentout/dive.git"
@@ -32,5 +33,10 @@
   "bugs": {
     "url": "https://github.com/wentout/dive/issues"
   },
-  "homepage": "https://github.com/wentout/dive#readme"
+  "homepage": "https://github.com/wentout/dive#readme",
+  "devDependencies": {
+    "eslint": "^5.6.0",
+    "eslint-plugin-mocha": "^5.2.0",
+    "mocha": "^5.2.0"
+  }
 }
