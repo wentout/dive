@@ -106,4 +106,20 @@ process.once('unhandledRejection', (error, promise) => {
 });
 ```
 
+# tests
+And yes, now it have tests.
+Simply run: `npm test`
+
+# examples
+the following npm command:
+`npm run examples`
+
+and the following direct execution
+```
+node example/simple
+node example/promise
+node example/hard
+```
+
+
 
