@@ -181,3 +181,28 @@ describe('nested jump from other code', () => {
 		});
 	});
 });
+
+describe('dive await test', () => {
+	it('should have a context', function (done) {
+		var noContextChecker;
+		const bfn = fn.bind(null, (failed) => {
+			done(failed || noContextChecker);
+		});
+		
+		const resolveAfter100ms = function (cb) {
+			return new Promise(resolve => {
+				setTimeout(function () {
+					resolve(cb);
+				}, 200);
+			});
+		};
+		setTimeout(function () {
+			noContextChecker = dive.ctx;
+		}, 100);
+		
+		dive(async (cb) => {
+			(await resolveAfter100ms (cb))();
+		}, 'await test')(bfn);
+	});
+});
+
