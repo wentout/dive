@@ -80,7 +80,7 @@ Stop tracing of `dive.currentContext` and rid of any pointers to it in memory. Y
 ```
 const fn = () => {
 	const ctx = dive.ctx;
-	console.log(ctx);
+	console.log(ctx); // 'simple test'
 	dive.emerge();
 };
 
