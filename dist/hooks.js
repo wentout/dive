@@ -2,6 +2,8 @@
 
 const errors = require('./errors');
 
+const promisePointer = Symbol('dive promise pointer');
+
 const async_hooks = require('async_hooks');
 
 const eid = () => {
@@ -166,7 +168,7 @@ const init = (asyncId, type, triggerId, resource) => {
 		it.resource &&
 		it.resource.promise
 	) {
-		it.resource.promise._diveContextId = it.id;
+		it.resource.promise[promisePointer] = it.id;
 	}
 
 	showDebugMark('INIT', it);
@@ -183,9 +185,9 @@ const before = (asyncId) => {
 
 	const it = state.asyncIdHooks[asyncId];
 	if (!it) {
-		if (state.hookRunning) {
+		// if (state.hookRunning) {
 			// TODO: perf_hook failed throw errors.ContextCorrupted();
-		}
+		// }
 		return;
 	}
 
@@ -378,7 +380,9 @@ module.exports = {
 
 	// on~off
 	enable,
-	disable
+	disable,
+	
+	promisePointer
 
 };
 

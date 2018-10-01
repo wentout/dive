@@ -87,7 +87,7 @@ describe('dive uncaughtException test', () => {
 describe('dive unhandledRejection test', () => {
 	it('should have a context', function (done) {
 		process.once('unhandledRejection', (error, promise) => {
-			const id = promise._diveContextId;
+			const id = promise[dive.promisePointer];
 			const ctx = dive.valueById(id);
 			dive.emerge();
 			const testFailed = !ctx && !!dive.ctx;

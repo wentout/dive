@@ -64,4 +64,6 @@ Object.defineProperty(dive, 'currentContext', context.valueDescriptor);
 
 dive.errors = require('./errors');
 
+dive.promisePointer = hooks.promisePointer;
+
 module.exports = dive;
