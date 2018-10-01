@@ -121,5 +121,11 @@ node example/promise
 node example/hard
 ```
 
+# duration
+Next code allows you to count how much time your context is running:
 
+```
+dive.measure()
+```
+It uses `perfomance.now()` so it is hight prescision timer based.
 
