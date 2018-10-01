@@ -13,6 +13,7 @@ const fn = (done) => {
 	if (dive.ctx !== undefined) {
 		testFailed = true;
 	}
+	// process._rawDebug(ctx, dive.ctx, testFailed);
 	done(testFailed);
 };
 
@@ -59,8 +60,6 @@ describe('dive callback test', () => {
 		}, 'callback test')(bfn);
 	});
 });
-
-
 
 describe('dive uncaughtException test', () => {
 	it('should have a context', function (done) {
@@ -139,5 +138,46 @@ describe('dive multi context test', () => {
 			}, 150);
 		}, 'multi test 2')();
 
+	});
+});
+
+describe('nested jump from other code', () => {
+	it('should have a context', function (done) {
+		const bfn = fn.bind(null, done);
+		var runStorage = [];
+		
+		const intervalPointer = setInterval(() => {
+			runStorage.forEach(run => {
+				process.nextTick(() => {
+					run();
+				});
+			});
+			runStorage = [];
+		}, 100);
+		
+		const eventRunner = () => {
+			bfn();
+			clearInterval(intervalPointer);
+		};
+		
+		process.once('diveTestEvent', eventRunner);
+
+		dive((cb) => {
+			setTimeout(() => {
+				runStorage.push(() => {
+					setTimeout(() => {
+						setImmediate(() => {
+							setTimeout(() => {
+								process.nextTick(() => {
+									cb();
+								});
+							}, 100);
+						});
+					}, 100);
+				});
+			}, 100);
+		}, 'nested jump test')(() => {
+			process.emit('diveTestEvent');
+		});
 	});
 });
