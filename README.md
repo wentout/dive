@@ -66,7 +66,7 @@ You need to make this before you will make any wrapping.
 This is a global change, all your wrapped context will become async wrapped after, the way to switch this on for one context and do not switch for another is not yet implemented in this library. If you really need this -- make an Issue.
 So, I'm using the following code to instantiate dive itself
 
-```
+```JS
 const dive = require('context-dive');
 dive.enableAsyncHooks()
 ```
@@ -77,7 +77,7 @@ About to disable previously enabled async hooks trhead wrappings.
 ## dive.emerge()
 Stop tracing of `dive.currentContext` and rid of any pointers to it in memory. You need to run this code when you don't need current context anymore. **YOU NEED** to run this code when there are no meaning to track that context, overwise your memory will leak and everything become bad. Simple example is the following:
 
-```
+```JS
 const fn = () => {
 	const ctx = dive.ctx;
 	console.log(ctx); // 'simple test'
@@ -97,7 +97,7 @@ And when there are `uncaughtException` currentContext will be emerged automatica
 ## Promises
 All the code you run inside of promises runs with currentContext. But `unhandledRejection` will not. But there are solution for it. I just desided to make a symbol sign in an every promise:
 
-```
+```JS
 process.once('unhandledRejection', (error, promise) => {
 	const currentContextId = promise[dive.promisePointer];
 	const ctx = dive.valueById(id);
@@ -124,7 +124,7 @@ node example/hard
 # duration
 Next code allows you to count how much time your context is running:
 
-```
+```JS
 dive.measure()
 ```
 It uses `perfomance.now()` so it is hight prescision timer based.
