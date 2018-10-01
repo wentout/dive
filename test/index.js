@@ -117,7 +117,7 @@ describe('dive multi context test', () => {
 		const passDone = () => {
 			done(failed1 || failed2);
 		};
-		
+
 		// we will simply wait
 		// will not directly track
 		// when everything is passed
@@ -145,7 +145,7 @@ describe('nested jump from other code', () => {
 	it('should have a context', function (done) {
 		const bfn = fn.bind(null, done);
 		var runStorage = [];
-		
+
 		const intervalPointer = setInterval(() => {
 			runStorage.forEach(run => {
 				process.nextTick(() => {
@@ -154,12 +154,12 @@ describe('nested jump from other code', () => {
 			});
 			runStorage = [];
 		}, 100);
-		
+
 		const eventRunner = () => {
 			bfn();
 			clearInterval(intervalPointer);
 		};
-		
+
 		process.once('diveTestEvent', eventRunner);
 
 		dive((cb) => {
@@ -167,17 +167,17 @@ describe('nested jump from other code', () => {
 				runStorage.push(() => {
 					setTimeout(() => {
 						setImmediate(() => {
-							setTimeout(() => {
-								process.nextTick(() => {
-									cb();
-								});
-							}, 100);
+							cb();
 						});
 					}, 100);
 				});
 			}, 100);
 		}, 'nested jump test')(() => {
-			process.emit('diveTestEvent');
+			setTimeout(() => {
+				process.nextTick(() => {
+					process.emit('diveTestEvent');
+				});
+			}, 100);
 		});
 	});
 });
