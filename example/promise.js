@@ -3,7 +3,7 @@
 // https://github.com/mvaldesdeleon/long-promise/blob/master/example.js
 // Great Thanks to Martín Valdés de León
 
-
+process._rawDebug('\n\n\n PROMISE EXAMPLE STARTED \n\n\n');
 
 process.on('unhandledRejection', (error, promise) => {
 	const id = promise._diveContextId;

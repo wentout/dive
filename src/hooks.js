@@ -25,6 +25,7 @@ const getIdFromState = () => {
 	if (Number.isInteger(state.context.id)) {
 		if (!state.hookRunning && !state.baseRunning) {
 			throw errors.ContextCorrupted('context leakage detected');
+			// throw errors.ContextCorrupted(`context leakage detected ${state.context.id}`);
 		}
 	} else {
 		if (state.hookRunning) {
@@ -36,14 +37,13 @@ const getIdFromState = () => {
 		}
 		return null;
 	}
-	
+
 	return state.context.id;
 };
 
 const contextIdTypeCalcs = {
 
-	
-	promise (asyncId, triggerId) {
+	promise(asyncId, triggerId) {
 		// promises are based on triggerId
 		const it = state.asyncIdHooks[triggerId];
 		if (!it) {
@@ -51,22 +51,22 @@ const contextIdTypeCalcs = {
 		}
 		return it.id;
 	},
-	
-	tickobject (asyncId, triggerId) {
+
+	tickobject(asyncId, triggerId) {
 		const prevId = asyncId - 1;
 		const it = state.asyncIdHooks[prevId];
 		if (!it) {
 			return null;
 		}
-		
+
 		// may that tick produced by our context ?
 		const probe = state.asyncIdHooks[prevId - 1];
 		if (!probe) {
 			return null;
 		}
-		
+
 		// process._rawDebug('\n\n--->TICK', asyncId, triggerId, prevId, it.id, it.triggerId, !!probe);
-		
+
 		if (
 			probe.triggerId === it.triggerId ||
 			triggerId === it.triggerId ||
@@ -74,31 +74,30 @@ const contextIdTypeCalcs = {
 			state.asyncIdHooks[probe.triggerId]
 		) {
 			return it.id;
-		// // } else {
-		// // 	process._rawDebug('\nIT', it);
-		// // 	process._rawDebug('\nPROBE', probe);
+			// // } else {
+			// // 	process._rawDebug('\nIT', it);
+			// // 	process._rawDebug('\nPROBE', probe);
 		}
 		return null;
 		// return it.id;
-		
+
 	}
 };
 
 const getContextId = (type, asyncId, triggerId) => {
-	
+
 	const stateId = getIdFromState();
 	if (Number.isInteger(stateId)) {
 		return stateId;
 	}
-	
-	
+
 	if (!contextIdTypeCalcs[type]) {
 		// process._rawDebug('DIG ->>>>>>>>>>>>>>>>', type, asyncId, triggerId);
 		return null;
 	}
-	
+
 	return contextIdTypeCalcs[type](asyncId, triggerId);
-	
+
 };
 
 /**
@@ -121,7 +120,7 @@ const init = (asyncId, type, triggerId, resource) => {
 	type = type.toLowerCase();
 
 	const contextId = getContextId(type, asyncId, triggerId);
-	
+
 	if (!Number.isInteger(contextId)) {
 		// cause nothing to track from here
 		return;

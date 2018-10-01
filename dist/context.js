@@ -21,7 +21,6 @@ const ID = {
 const runningContexts = [];
 const runningContextsValues = [];
 
-
 const lastUnsetValue = () => {
 	const context = runningContexts[ID.last];
 	return context ? context.value : undefined;
@@ -180,10 +179,6 @@ const measureById = (idForValue) => {
 		return new Error('this context does not exists');
 	}
 
-	const opts = it.opts;
-	if (opts.destroyed) {
-		return new Error('this context was already destryed');
-	}
 	return performance.now() - it.startTime;
 };
 
@@ -207,7 +202,10 @@ Object.defineProperty(module.exports, 'measure', {
 
 const idPropDescriptor = {
 	get() {
-		return Number.isInteger(ID.current) ? ID.current : null;
+		if (runningContexts[ID.current]) {
+			return ID.current;
+		}
+		return null;
 	},
 	configurable: false,
 	enumerable: true
@@ -279,7 +277,6 @@ Object.defineProperty(module.exports, 'create', {
 			}
 
 			var basePassed = false;
-			var destroyed = false;
 
 			// position inside contexts & values
 			const valuePosition = runningContextsValues.push(value) - 1;
@@ -341,17 +338,6 @@ Object.defineProperty(module.exports, 'create', {
 				enumerable: true
 			});
 
-			Object.defineProperty(props, 'destroyed', {
-				get() {
-					return destroyed;
-				},
-				set() {
-					destroyed = true;
-				},
-				configurable: false,
-				enumerable: true
-			});
-
 			return contextPosition;
 		};
 	},
@@ -393,7 +379,6 @@ const destroy = (id = ID.current) => {
 	if (!Number.isInteger(id)) {
 		throw errors.NoContextAvail();
 	}
-	const it = runningContexts[id];
 	if (!runningContexts[id]) {
 		throw errors.ContextDoesNotExists(`context ID : ${id}`);
 	}
@@ -402,16 +387,13 @@ const destroy = (id = ID.current) => {
 
 	unset();
 
-	it.destroyed = true;
-
 	// we are unable to get rid of runningContexts[id]
 	// by using some sort of runningContexts.splice(id, 1);
 	// cause we will change the position number for other [dive]'s
 	// so we just replace it with undefined value
-	runningContexts[id].it = undefined;
-	runningContexts[id].fn = undefined;
+	runningContexts[id] = undefined;
 	runningContextsValues[id] = undefined;
-
+	
 	return lastContextValue;
 };
 

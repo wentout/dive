@@ -20,7 +20,7 @@ const defaultState = {
 	// [triggerId][asyncId] == ctx
 	triggerHooks: getNewOject,
 	promiseHooks: getNewOject,
-	
+
 	trace: getNewArray
 
 };
@@ -102,7 +102,7 @@ const saveHooksContext = (ctx) => {
 	if (!state.asyncIdHooks[asyncId]) {
 		state.asyncIdHooks[asyncId] = ctx;
 	}
-	
+
 	if (!state.triggerHooks[triggerId]) {
 		state.triggerHooks[triggerId] = {};
 	}
@@ -114,30 +114,34 @@ const saveHooksContext = (ctx) => {
 	if (type === 'promise') {
 		state.promiseHooks[asyncId] = ctx;
 	}
-	
+
 	if (!trace[id]) {
 		trace[id] = [];
 	}
-	
+
 	// to store all saved references 4 fast cleanup
 	trace[id].push({
 		asyncId, triggerId
 	});
-	
+
 };
 
 const cleanup = (id) => {
-	
+
+	if (baseRunning) {
+		module.exports.baseRunning = false;
+	}
+
 	if (!trace[id]) {
 		return;
 	}
-	
+
 	trace[id].forEach(it => {
 		const { asyncId, triggerId } = it;
-		
+
 		state.asyncIdHooks[asyncId] = undefined;
 		delete state.asyncIdHooks[asyncId];
-		
+
 		if (state.triggerHooks[triggerId]) {
 			state.triggerHooks[triggerId][asyncId] = undefined;
 			delete state.triggerHooks[triggerId][asyncId];
@@ -145,18 +149,18 @@ const cleanup = (id) => {
 				delete state.triggerHooks[triggerId];
 			}
 		}
-		
+
 		state.promiseHooks[asyncId] = undefined;
 		delete state.promiseHooks[asyncId];
 	});
-	
+
 	trace[id] = undefined;
 	delete trace[id];
-	
+
 	state.trace = [];
-	
+
 	module.exports.hookRunning = false;
-	
+
 };
 
 Object.defineProperty(module.exports, 'saveHooksContext', {
@@ -181,6 +185,6 @@ Object.defineProperty(module.exports, 'context', {
 	get() {
 		return context;
 	},
-	configurable:false,
-	enumerable:false
+	configurable: false,
+	enumerable: false
 });

@@ -99,7 +99,7 @@ const dive = function (fn, value, opts = optsDefaults) {
 
 		const run = fn.bind(this, ...args);
 		var answer = run();
-
+		
 		if (!opts.skipAnswer && typeof answer == 'function') {
 			patchingInProgress = true;
 			answer = dive(answer, contextValue, opts);
@@ -145,18 +145,20 @@ const dive = function (fn, value, opts = optsDefaults) {
  */
 const emerge = (id = context.id) => {
 	var lastContext;
-
+	
 	if (!Number.isInteger(id)) {
 		const error = errors.NoContextAvail();
 		return error;
 	}
-
+	
 	lastContext = context.destroy(id);
 	state.cleanup(id);
-
+	
 	const counters = state.context.counters();
 	const duration = context.measureById(id);
-
+	
+	// process._rawDebug(`EMERGE: ${id} ${state.context.id}`);
+	
 	return {
 		duration,
 		counters,
@@ -165,10 +167,7 @@ const emerge = (id = context.id) => {
 };
 
 dive.emerge = emerge;
-
-module.exports = dive;
-
-process.on('uncaughtException', () => {
+dive.uncaughtExceptionListener = () => {
 	// Let sync error code runs with context
 	// we will destroy it immediately after
 	if (!state.hookRunning) {
@@ -181,4 +180,9 @@ process.on('uncaughtException', () => {
 		emerge(emergeId);
 		state.hookRunning = false;
 	});
-});
+};
+
+process.on('uncaughtException', dive.uncaughtExceptionListener);
+
+module.exports = dive;
+

@@ -1,5 +1,7 @@
 'use strict';
 
+process._rawDebug('\n\n\n HARD EXAMPLE STARTED \n\n\n');
+
 const util = require('util');
 const dive = require('../src/index').enableAsyncHooks();
 // dive.enableFunctions();
