@@ -52,7 +52,7 @@ dive.disableAsyncHooks = () => {
 Object.defineProperty(dive, 'ctx', context.valueDescriptor);
 Object.defineProperty(dive, 'currentContext', context.valueDescriptor);
 
-['valueById', 'lastUnsetValue', 'currentContextStack', 'adjustErrorStack'].forEach(name => {
+['valueById', 'lastUnsetValue', 'currentContextStack', 'adjustErrorStack', 'measureById'].forEach(name => {
 	Object.defineProperty(dive, name, {
 		get() {
 			return context[name];
@@ -71,6 +71,13 @@ dive.getPromiseContext = (promise) => {
 		return undefined;
 	}
 	return dive.valueById(promiseContextId);
+};
+dive.getPromiseMeasure = (promise) => {
+	const promiseContextId = promise[dive.promisePointer];
+	if (!promiseContextId) {
+		return undefined;
+	}
+	return dive.measureById(promiseContextId);
 };
 
 module.exports = dive;
