@@ -72,7 +72,7 @@ dive.enableAsyncHooks()
 ```
 
 ## dive.disableAsyncHooks()
-About to disable previously enabled async hooks trhead wrappings.
+About to disable previously enabled async hooks thread wrappings.
 
 ## dive.emerge()
 Stop tracing of `dive.currentContext` and rid of any pointers to it in memory. You need to run this code when you don't need current context anymore. **YOU NEED** to run this code when there are no meaning to track that context, overwise your memory will leak and everything become bad. Simple example is the following:
@@ -95,7 +95,7 @@ And when there are `uncaughtException` currentContext will be emerged automatica
 
 
 ## Promises
-All the code you run inside of promises runs with currentContext. But `unhandledRejection` will not. But there are solution for it. I just desided to make a symbol sign in an every promise:
+All the code you run inside of wrapped promises runs with currentContext. But `unhandledRejection` will not, cause it runs out of execution scope of async_hoos related wrappings. Promises are implemented on [ECMAScript 2015 Job Queue](https://www.ecma-international.org/ecma-262/6.0/#sec-jobs-and-job-queues). So them are bit inside of V8 core itself. And though they are wrapped with async_hooks too, there is no way to jump inside of unhandledRejection yet. But we have solution for it. I just desided to make a symbol sign in an every promise that runs out of my wrapped function. The implementation is hidden, I made helpers. Just pass promise there, and everything will work:
 
 ```JS
 process.once('unhandledRejection', (error, promise) => {
