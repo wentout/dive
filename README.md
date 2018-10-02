@@ -99,9 +99,9 @@ All the code you run inside of promises runs with currentContext. But `unhandled
 
 ```JS
 process.once('unhandledRejection', (error, promise) => {
-	const currentContextId = promise[dive.promisePointer];
-	const ctx = dive.valueById(id);
-	console.log(ctx);
+	const ctx = dive.getPromiseContext(promise);
+	const duration = dive.getPromiseMeasure(promise);
+	console.log(ctx, duration);
 	dive.emerge();
 });
 ```
