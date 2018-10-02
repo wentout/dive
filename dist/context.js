@@ -18,12 +18,12 @@ const ID = {
 // cause we can have
 // multiplie "dive"s
 // running simultaniously
-const runningContexts = [];
-const runningContextsValues = [];
+const runningContexts = new Map();
+const runningContextsValues = new Map();
 
 const lastUnsetValue = () => {
-	const context = runningContexts[ID.last];
-	return context ? context.value : undefined;
+	const props = runningContexts.get(ID.last);
+	return props ? props.value : undefined;
 };
 
 /**
@@ -32,17 +32,29 @@ const lastUnsetValue = () => {
  * @param {any} value 
  */
 const changeContext = (value) => {
-	if (!Number.isInteger(ID.current)) {
+	if (!runningContexts.has(ID.current)) {
 		return;
 	}
-	runningContexts[ID.current].value = value;
-	return value;
+	const props = runningContexts.get(ID.current);
+	runningContextsValues.delete(props);
+	runningContextsValues.set(props, value);
+	return runningContexts.get(ID.current).value;
 };
 
 Object.defineProperty(module.exports, 'self', {
 	get() {
 		return (id = ID.current) => {
-			return runningContexts[id];
+			return runningContexts.get(id);
+		};
+	},
+	configurable: false,
+	enumerable: false
+});
+
+Object.defineProperty(module.exports, 'hasId', {
+	get() {
+		return id => {
+			return runningContexts.has(id);
 		};
 	},
 	configurable: false,
@@ -51,8 +63,8 @@ Object.defineProperty(module.exports, 'self', {
 
 const valueDescriptor = {
 	get() {
-		if (runningContexts[ID.current]) {
-			return runningContexts[ID.current].value;
+		if (runningContexts.has(ID.current)) {
+			return runningContexts.get(ID.current).value;
 		} else {
 			const errorStack = (new Error()).stack;
 			if (errorStack.includes('emitPromiseRejectionWarnings')) {
@@ -81,8 +93,8 @@ Object.defineProperty(module.exports, 'currentContextValue', valueDescriptor);
 
 
 const currentContextStack = () => {
-	if (runningContexts[ID.current]) {
-		return runningContexts[ID.current].stack;
+	if (runningContexts.has(ID.current)) {
+		return runningContexts.get(ID.current).stack;
 	}
 	return undefined;
 };
@@ -111,8 +123,8 @@ Object.defineProperty(module.exports, 'adjustErrorStack', {
 Object.defineProperty(module.exports, 'valueById', {
 	get() {
 		return (idForValue) => {
-			if (runningContexts[idForValue]) {
-				return runningContexts[idForValue].value;
+			if (runningContexts.has(idForValue)) {
+				return runningContexts.get(idForValue).value;
 			}
 			return undefined;
 		};
@@ -124,8 +136,8 @@ Object.defineProperty(module.exports, 'valueById', {
 Object.defineProperty(module.exports, 'optsById', {
 	get() {
 		return (idForValue) => {
-			if (runningContexts[idForValue]) {
-				return runningContexts[idForValue].opts;
+			if (runningContexts.has(idForValue)) {
+				return runningContexts.get(idForValue).opts;
 			}
 			return undefined;
 		};
@@ -135,8 +147,8 @@ Object.defineProperty(module.exports, 'optsById', {
 });
 Object.defineProperty(module.exports, 'currentOpts', {
 	get() {
-		if (runningContexts[ID.current]) {
-			return runningContexts[ID.current].opts;
+		if (runningContexts.has(ID.current)) {
+			return runningContexts.get(ID.current).opts;
 		}
 		return undefined;
 	},
@@ -145,14 +157,14 @@ Object.defineProperty(module.exports, 'currentOpts', {
 });
 Object.defineProperty(module.exports, 'basePassed', {
 	get() {
-		if (runningContexts[ID.current]) {
-			return runningContexts[ID.current].basePassed;
+		if (runningContexts.has(ID.current)) {
+			return runningContexts.get(ID.current).basePassed;
 		}
 		return undefined;
 	},
 	set() {
-		if (runningContexts[ID.current]) {
-			return runningContexts[ID.current].basePassed = true;
+		if (runningContexts.has(ID.current)) {
+			return runningContexts.get(ID.current).basePassed = true;
 		}
 		return undefined;
 	},
@@ -163,8 +175,8 @@ Object.defineProperty(module.exports, 'basePassed', {
 Object.defineProperty(module.exports, 'counters', {
 	get() {
 		return (idForValue = ID.current) => {
-			if (runningContexts[idForValue]) {
-				return runningContexts[idForValue].counters;
+			if (runningContexts.has(idForValue)) {
+				return runningContexts.get(idForValue).counters;
 			}
 			return undefined;
 		};
@@ -174,11 +186,10 @@ Object.defineProperty(module.exports, 'counters', {
 });
 
 const measureById = (idForValue) => {
-	const it = runningContexts[idForValue];
+	const it = runningContexts.get(idForValue);
 	if (!it) {
 		return new Error('this context does not exists');
 	}
-
 	return performance.now() - it.startTime;
 };
 
@@ -191,7 +202,7 @@ Object.defineProperty(module.exports, 'measureById', {
 });
 Object.defineProperty(module.exports, 'measure', {
 	get() {
-		if (!runningContexts[ID.current]) {
+		if (!runningContexts.has(ID.current)) {
 			return new Error('out of context');
 		}
 		return measureById(ID.current);
@@ -202,7 +213,7 @@ Object.defineProperty(module.exports, 'measure', {
 
 const idPropDescriptor = {
 	get() {
-		if (runningContexts[ID.current]) {
+		if (runningContexts.has(ID.current)) {
 			return ID.current;
 		}
 		return null;
@@ -216,8 +227,7 @@ Object.defineProperty(module.exports, 'currentId', idPropDescriptor);
 
 const lastIDPropDescriptor = {
 	get() {
-		const lastId = ID.last;
-		return Number.isInteger(lastId) ? lastId : null;
+		return runningContexts.has(ID.last) ? ID.last : null;
 	},
 	configurable: false,
 	enumerable: true
@@ -234,7 +244,7 @@ Object.defineProperty(module.exports, 'lastUnsetValue', {
 
 Object.defineProperty(module.exports, 'runningContextsNumbers', {
 	get() {
-		return Object.keys(runningContexts).map(n => parseInt(n));
+		return runningContexts.keys();
 	},
 	configurable: false,
 	enumerable: true
@@ -242,7 +252,7 @@ Object.defineProperty(module.exports, 'runningContextsNumbers', {
 
 Object.defineProperty(module.exports, 'runningContextsCount', {
 	get() {
-		return runningContexts.length;
+		return runningContexts.size;
 	},
 	configurable: false,
 	enumerable: true
@@ -250,7 +260,7 @@ Object.defineProperty(module.exports, 'runningContextsCount', {
 
 const values = {
 	get() {
-		return runningContextsValues.slice();
+		return new Set(runningContextsValues.values());
 	},
 	configurable: false,
 	enumerable: true
@@ -277,10 +287,9 @@ Object.defineProperty(module.exports, 'create', {
 			}
 
 			var basePassed = false;
-
-			// position inside contexts & values
-			const valuePosition = runningContextsValues.push(value) - 1;
-
+			
+			const contextId = `${performance.now()}`;
+			
 			const props = {
 				fn,
 				opts,
@@ -294,7 +303,6 @@ Object.defineProperty(module.exports, 'create', {
 				// changed externally from core
 				eid: hooks.eid,
 				tid: hooks.tid,
-				pos: valuePosition,
 				stack: getStack(),
 				counters: {
 					init: 0,
@@ -302,25 +310,28 @@ Object.defineProperty(module.exports, 'create', {
 					after: 0,
 					destroy: 0
 				},
-				startTime: null
+				startTime: null,
+				id : contextId
 			};
 
 			if (opts.debugMode) {
 				process._rawDebug('\n\n Context Started:', {
-					pos: valuePosition,
+					id: contextId,
 					value,
 				});
 			}
-
-			const contextPosition = runningContexts.push(props) - 1;
-			if (contextPosition !== valuePosition) {
+			
+			runningContexts.set(contextId, props);
+			runningContextsValues.set(props, value);
+			
+			// position inside contexts & values
+			if (runningContexts.size !== runningContextsValues.size) {
 				throw errors.ContextCorrupted();
 			}
 
 			Object.defineProperty(props, 'value', {
 				get() {
-					const pos = runningContexts[contextPosition].pos;
-					return runningContextsValues[pos];
+					return runningContextsValues.get(props);
 				},
 				configurable: false,
 				enumerable: true
@@ -338,7 +349,7 @@ Object.defineProperty(module.exports, 'create', {
 				enumerable: true
 			});
 
-			return contextPosition;
+			return contextId;
 		};
 	},
 	configurable: false,
@@ -348,12 +359,12 @@ Object.defineProperty(module.exports, 'create', {
 Object.defineProperty(module.exports, 'select', {
 	get() {
 		return function (id) {
-			ID.last = ID.current ? 0 + ID.current : 0;
-			if (!runningContexts[id]) {
+			ID.last = runningContexts.has(ID.current) ? ID.current : null;
+			if (!runningContexts.has(id)) {
 				return;
 			}
-			ID.current = 0 + id;
-			return runningContexts[ID.current].value;
+			ID.current = id;
+			return runningContexts.get(ID.current).value;
 		};
 	},
 	configurable: false,
@@ -362,7 +373,7 @@ Object.defineProperty(module.exports, 'select', {
 
 
 const unset = () => {
-	ID.last = ID.current ? 0 + ID.current : null;
+	ID.last = runningContexts.get(ID.current) ? ID.current : null;
 	ID.current = null;
 };
 
@@ -376,14 +387,12 @@ Object.defineProperty(module.exports, 'unset', {
 
 
 const destroy = (id = ID.current) => {
-	if (!Number.isInteger(id)) {
-		throw errors.NoContextAvail();
-	}
-	if (!runningContexts[id]) {
+	if (!runningContexts.has(id)) {
 		throw errors.ContextDoesNotExists(`context ID : ${id}`);
 	}
 
-	const lastContextValue = runningContexts[id].value;
+	const destroyedProps = runningContexts.get(id);
+	const destroyedValue = destroyedProps.value;
 
 	unset();
 
@@ -391,10 +400,10 @@ const destroy = (id = ID.current) => {
 	// by using some sort of runningContexts.splice(id, 1);
 	// cause we will change the position number for other [dive]'s
 	// so we just replace it with undefined value
-	runningContexts[id] = undefined;
-	runningContextsValues[id] = undefined;
+	runningContexts.delete(id);
+	runningContextsValues.delete(destroyedProps);
 	
-	return lastContextValue;
+	return destroyedValue;
 };
 
 Object.defineProperty(module.exports, 'destroy', {

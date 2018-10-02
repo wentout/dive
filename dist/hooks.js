@@ -1,9 +1,9 @@
 'use strict';
 
 const errors = require('./errors');
+const state = require('./state');
 
 const promisePointer = Symbol('dive promise pointer');
-
 const async_hooks = require('async_hooks');
 
 const eid = () => {
@@ -14,8 +14,6 @@ const tid = () => {
 	return 0 + async_hooks.triggerAsyncId();
 };
 
-const state = require('./state');
-
 const showDebugMark = (mark, it) => {
 	const opts = state.context.optsById(it.id);
 	if (opts && opts.debugMode) {
@@ -24,14 +22,12 @@ const showDebugMark = (mark, it) => {
 };
 
 const getIdFromState = () => {
-	if (Number.isInteger(state.context.id)) {
+	if (state.context.id) {
 		if (!state.hookRunning && !state.baseRunning) {
 			throw errors.ContextCorrupted('context leakage detected');
-			// throw errors.ContextCorrupted(`context leakage detected ${state.context.id}`);
 		}
 	} else {
 		if (state.hookRunning) {
-			process._rawDebug(state.runningHookId);
 			throw errors.ContextCorrupted('no context with running hook');
 		}
 		if (state.baseRunning) {
@@ -67,8 +63,6 @@ const contextIdTypeCalcs = {
 			return null;
 		}
 
-		// process._rawDebug('\n\n--->TICK', asyncId, triggerId, prevId, it.id, it.triggerId, !!probe);
-
 		if (
 			probe.triggerId === it.triggerId ||
 			triggerId === it.triggerId ||
@@ -76,25 +70,19 @@ const contextIdTypeCalcs = {
 			state.asyncIdHooks[probe.triggerId]
 		) {
 			return it.id;
-			// // } else {
-			// // 	process._rawDebug('\nIT', it);
-			// // 	process._rawDebug('\nPROBE', probe);
 		}
 		return null;
-		// return it.id;
-
 	}
 };
 
 const getContextId = (type, asyncId, triggerId) => {
 
 	const stateId = getIdFromState();
-	if (Number.isInteger(stateId)) {
+	if (stateId) {
 		return stateId;
 	}
 
 	if (!contextIdTypeCalcs[type]) {
-		// process._rawDebug('DIG ->>>>>>>>>>>>>>>>', type, asyncId, triggerId);
 		return null;
 	}
 
@@ -123,7 +111,7 @@ const init = (asyncId, type, triggerId, resource) => {
 
 	const contextId = getContextId(type, asyncId, triggerId);
 
-	if (!Number.isInteger(contextId)) {
+	if (!contextId) {
 		// cause nothing to track from here
 		return;
 	}
@@ -185,9 +173,6 @@ const before = (asyncId) => {
 
 	const it = state.asyncIdHooks[asyncId];
 	if (!it) {
-		// if (state.hookRunning) {
-			// TODO: perf_hook failed throw errors.ContextCorrupted();
-		// }
 		return;
 	}
 
@@ -228,7 +213,7 @@ const before = (asyncId) => {
 
 
 /**
-* standard async_hooks after callback
+ * standard async_hooks after callback
  * this function patches currentContext
  * @param {number} asyncId 
  */
@@ -239,10 +224,8 @@ const after = (asyncId) => {
 	if (!it) {
 		if (state.hookRunning) {
 			if (state.runningHookId === asyncId) {
-				// Probably we've got uncaughtException!
+				// seems we've got uncaughtException!
 				state.hookRunning = false;
-			} else {
-				// TODO: perf_hook failed throw errors.ContextCorrupted();
 			}
 		}
 		return;
@@ -261,7 +244,8 @@ const after = (asyncId) => {
 		throw errors.ContextCorrupted('after hook out of context');
 	} else {
 		if (!state.hookRunning) {
-			throw errors.ContextCorrupted('after hook without context');
+			// throw errors.ContextCorrupted('after hook without context');
+			throw errors.ContextCorrupted(`after hook without context ${traceId} ${asyncId} ${state.runningHookId}`);
 		} else if (state.context.id !== it.id) {
 			throw errors.ContextCorrupted('after hook context split');
 		}
@@ -280,7 +264,7 @@ const after = (asyncId) => {
 			throw errors.NoContextAvail('unable to retrive');
 		}
 		state.context.select(selectIt.id);
-		state.runningHookId = selectIt.id;
+		state.runningHookId = selectIt.asyncId;
 	}
 
 };
