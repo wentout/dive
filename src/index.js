@@ -65,5 +65,12 @@ Object.defineProperty(dive, 'currentContext', context.valueDescriptor);
 dive.errors = require('./errors');
 
 dive.promisePointer = hooks.promisePointer;
+dive.getPromiseContext = (promise) => {
+	const promiseContextId = promise[dive.promisePointer];
+	if (!promiseContextId) {
+		return undefined;
+	}
+	return dive.valueById(promiseContextId);
+};
 
 module.exports = dive;

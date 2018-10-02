@@ -1,9 +1,9 @@
 'use strict';
 
 const errors = require('./errors');
+const state = require('./state');
 
 const promisePointer = Symbol('dive promise pointer');
-
 const async_hooks = require('async_hooks');
 
 const eid = () => {
@@ -14,8 +14,6 @@ const tid = () => {
 	return 0 + async_hooks.triggerAsyncId();
 };
 
-const state = require('./state');
-
 const showDebugMark = (mark, it) => {
 	const opts = state.context.optsById(it.id);
 	if (opts && opts.debugMode) {
@@ -24,13 +22,12 @@ const showDebugMark = (mark, it) => {
 };
 
 const getIdFromState = () => {
-	if (Number.isInteger(state.context.id)) {
+	if (state.context.id) {
 		if (!state.hookRunning && !state.baseRunning) {
 			throw errors.ContextCorrupted('context leakage detected');
 		}
 	} else {
 		if (state.hookRunning) {
-			process._rawDebug(state.runningHookId);
 			throw errors.ContextCorrupted('no context with running hook');
 		}
 		if (state.baseRunning) {
@@ -81,7 +78,7 @@ const contextIdTypeCalcs = {
 const getContextId = (type, asyncId, triggerId) => {
 
 	const stateId = getIdFromState();
-	if (Number.isInteger(stateId)) {
+	if (stateId) {
 		return stateId;
 	}
 
@@ -114,7 +111,7 @@ const init = (asyncId, type, triggerId, resource) => {
 
 	const contextId = getContextId(type, asyncId, triggerId);
 
-	if (!Number.isInteger(contextId)) {
+	if (!contextId) {
 		// cause nothing to track from here
 		return;
 	}
@@ -247,7 +244,8 @@ const after = (asyncId) => {
 		throw errors.ContextCorrupted('after hook out of context');
 	} else {
 		if (!state.hookRunning) {
-			throw errors.ContextCorrupted('after hook without context');
+			// throw errors.ContextCorrupted('after hook without context');
+			throw errors.ContextCorrupted(`after hook without context ${traceId} ${asyncId} ${state.runningHookId}`);
 		} else if (state.context.id !== it.id) {
 			throw errors.ContextCorrupted('after hook context split');
 		}
@@ -266,7 +264,7 @@ const after = (asyncId) => {
 			throw errors.NoContextAvail('unable to retrive');
 		}
 		state.context.select(selectIt.id);
-		state.runningHookId = selectIt.id;
+		state.runningHookId = selectIt.asyncId;
 	}
 
 };

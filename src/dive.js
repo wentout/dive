@@ -65,7 +65,7 @@ const dive = function (fn, value, opts = optsDefaults) {
 			throw errors.ContextCorrupted('patching while running');
 		}
 	} else {
-		if (context.values.includes(value)) {
+		if (context.values.has(value)) {
 			throw errors.ContextAlreadyExists('same context is already started');
 		}
 		// ! creation itself
@@ -146,9 +146,8 @@ const dive = function (fn, value, opts = optsDefaults) {
 const emerge = (id = context.id) => {
 	var lastContext;
 	
-	if (!Number.isInteger(id)) {
-		const error = errors.NoContextAvail();
-		return error;
+	if (!context.hasId(id)) {
+		return errors.NoContextAvail();
 	}
 	
 	lastContext = context.destroy(id);
@@ -156,8 +155,6 @@ const emerge = (id = context.id) => {
 	
 	const counters = state.context.counters();
 	const duration = context.measureById(id);
-	
-	// process._rawDebug(`EMERGE: ${id} ${state.context.id}`);
 	
 	return {
 		duration,

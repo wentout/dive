@@ -5,7 +5,6 @@ dive.enableAsyncHooks();
 const fn = (done) => {
 	const ctx = dive.ctx;
 	dive.emerge();
-	// process._rawDebug(ctx, ctx === undefined, dive.ctx === undefined, dive.ctx);
 	let testFailed = false;
 	if (ctx === undefined) {
 		testFailed = true;
