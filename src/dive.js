@@ -150,11 +150,11 @@ const emerge = (id = context.id) => {
 		return errors.NoContextAvail();
 	}
 	
-	lastContext = context.destroy(id);
-	state.cleanup(id);
-	
 	const counters = state.context.counters();
 	const duration = context.measureById(id);
+	
+	lastContext = context.destroy(id);
+	state.cleanup(id);
 	
 	return {
 		duration,
