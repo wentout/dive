@@ -76,6 +76,11 @@ const dive = function (fn, value, opts = optsDefaults) {
 
 	const base = function (...args) {
 
+		// cause we can emerge from previous base
+		if (!context.hasId(contextId)) {
+			return fn.call(this, ...args);
+		}
+
 		if (!context.basePassed) {
 			context.basePassed = true;
 		}
@@ -99,7 +104,7 @@ const dive = function (fn, value, opts = optsDefaults) {
 
 		const run = fn.bind(this, ...args);
 		var answer = run();
-		
+
 		if (!opts.skipAnswer && typeof answer == 'function') {
 			patchingInProgress = true;
 			answer = dive(answer, contextValue, opts);
@@ -145,17 +150,17 @@ const dive = function (fn, value, opts = optsDefaults) {
  */
 const emerge = (id = context.id) => {
 	var lastContext;
-	
+
 	if (!context.hasId(id)) {
 		return errors.NoContextAvail();
 	}
-	
+
 	const counters = state.context.counters();
 	const duration = context.measureById(id);
-	
+
 	lastContext = context.destroy(id);
 	state.cleanup(id);
-	
+
 	return {
 		duration,
 		counters,
