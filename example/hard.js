@@ -103,7 +103,7 @@ for (var i = 1; i < 2; i++) {
 			// debugMode : true,
 		})()(() => {
 			setImmediate(() => {
-				process._rawDebug('Measured Duration: ', dive.context.measure);
+				process._rawDebug('Measured Duration: ', dive.measure());
 				require('fs').readFile('./package.json', (err, data) => {
 					process.nextTick(() => {
 						zdfn(JSON.parse(data.toString()));

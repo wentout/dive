@@ -80,4 +80,8 @@ dive.getPromiseMeasure = (promise) => {
 	return dive.measureById(promiseContextId);
 };
 
+dive.measure = () => {
+	return dive.context.measure;
+};
+
 module.exports = dive;
