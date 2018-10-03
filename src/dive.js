@@ -81,14 +81,14 @@ const dive = function (fn, value, opts = optsDefaults) {
 			return fn.call(this, ...args);
 		}
 
-		if (!context.basePassed) {
-			context.basePassed = true;
-		}
-
 		state.baseRunning = true;
 
 		const prevContext = context.id;
 		context.select(contextId);
+
+		if (!context.basePassed) {
+			context.basePassed = true;
+		}
 
 		if (!opts.skipCbArg) {
 			patchingInProgress = true;
