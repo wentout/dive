@@ -212,7 +212,16 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 				generatePreview: true
 			}, (err, data) => {
 				if (err) { return; }
-				const objectId = data.internalProperties[1].value.objectId;
+				var scopes = null;
+				data.internalProperties.forEach(it => {
+					if (it.name === '[[Scopes]]' && it.value) {
+						scopes = it.value;
+					}
+				});
+				if (!scopes || !scopes.objectId) {
+					return;
+				}
+				const objectId = scopes.objectId;
 				session.post('Runtime.getProperties', {
 					objectId,
 					generatePreview: true
@@ -241,7 +250,7 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 			});
 		}
 	};
-	session.on('Runtime.consoleAPICalled', listener);
+	session.once('Runtime.consoleAPICalled', listener);
 	if (inspector.console) {
 		inspector.console.log(nextTickHookResource.callback);
 	} else {
@@ -251,13 +260,23 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 		// eslint-disable-next-line no-console
 		console.context('dive').log(nextTickHookResource.callback);
 	}
-	session.off('Runtime.consoleAPICalled', listener);
 	return hasInternalScope;
 };
+
+const version = process.versions.node.split('.')[0];
 
 Object.defineProperty(module.exports, 'enableExperimentalPrediction', {
 	get() {
 		return () => {
+			if (version < 10) {
+				process._rawDebug(`
+
+	For [ enableExperimentalPrediction ] usage
+	node verion must be greater than 10
+
+				`);
+			}
+
 			inspector = require('inspector');
 			session = new inspector.Session();
 			session.connect();

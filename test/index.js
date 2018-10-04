@@ -1,3 +1,6 @@
+'use strict';
+
+const version = process.versions.node.split('.')[0];
 
 const dive = require('../src/index');
 dive.enableAsyncHooks();
@@ -243,37 +246,83 @@ describe('nested jump from other code 1', () => {
 describe('nested jump from other code 2', () => {
 	it('should have a context', function (done) {
 		const name = 'nested jump test';
-		var bfn = fn.bind(null, done, name);
+
+		const fixtures = {
+			octx1: false,
+			octx2: false,
+			jump1: false,
+			jump2: false,
+			line1: false,
+			line2: false,
+			line3: false,
+			drop1: false,
+			drop2: false,
+			pre_jump: false,
+		};
+
+		var bfn = fn.bind(null, (testFailed) => {
+			Object.entries(fixtures).forEach(entry => {
+				const [key, value] = entry;
+				if (value === false) {
+					process._rawDebug(key, value);
+					testFailed = true;
+				}
+			});
+			done(testFailed);
+		}, name);
 
 		var runStorage = [dive(() => {
 			setTimeout(() => {
+				if (version < 10) {
+					fixtures.octx1 = true;
+				} else {
+					fixtures.octx1 = (dive.ctx == 'other ctx 1');
+				}
 				// process._rawDebug('must have another dive : ', dive.ctx);
 			}, 100);
 		}, 'other ctx 1'), dive(() => {
 			setTimeout(() => {
+				if (version < 10) {
+					fixtures.octx2 = true;
+				} else {
+					fixtures.octx2 = (dive.ctx == 'other ctx 2');
+				}
 				// process._rawDebug('must have another dive : ', dive.ctx);
 			}, 100);
 		}, 'other ctx 2')];
 
-		const intervalPointer = setInterval(() => {
-			runStorage.forEach((run, i) => {
 
+		process.on('diveTestJumpEvent', (index) => {
+			if (version < 10) {
+				fixtures.jump1 = true;
+			} else {
+				// because this is a completely
+				// the other conext towards wrapped
+				// this is just an event jump
+				fixtures.jump1 = (dive.ctx == undefined);
+				// process._rawDebug('jump 1 : ', dive.ctx, index);
+			}
+			runStorage[index]();
+		});
+
+		const intervalPointer = setInterval(() => {
+			runStorage.forEach((run, index) => {
 				process.nextTick(() => {
 					setTimeout(() => {
-						process.emit('diveTestJumpEvent', i);
+						process.emit('diveTestJumpEvent', index);
 					}, 50);
 				});
 			});
 			// runStorage = [];
-		}, 1000);
-
-		process.on('diveTestJumpEvent', (index) => {
-			// process._rawDebug('event 1 : ', dive.ctx);
-			runStorage[index]();
-		});
+		}, 100);
 
 		const eventRunner = () => {
-			// process._rawDebug('jump : ', dive.ctx);
+			if (version < 10) {
+				fixtures.jump2 = true;
+			} else {
+				fixtures.jump2 = (dive.ctx == name);
+				// process._rawDebug('jump 2: ', dive.ctx);
+			}
 			bfn();
 			clearInterval(intervalPointer);
 		};
@@ -282,66 +331,66 @@ describe('nested jump from other code 2', () => {
 
 		const jumpDescriptor = (cb) => {
 			process.nextTick(() => {
-				// process._rawDebug('direct 1 : ', dive.ctx);
+				if (version < 10) {
+					fixtures.line1 = true;
+				} else {
+					fixtures.line1 = (dive.ctx == name);
+				}
+				// process._rawDebug('line 1 : ', dive.ctx);
 			});
 			return () => {
-				// process._rawDebug('direct 2 : ', dive.ctx);
+				// all must be false
+				// because this code is just a wrapper 
+				// it wraps our code, and runs instead of it
+
+				if (version < 10) {
+					fixtures.line2 = true;
+				} else {
+					fixtures.line2 = (dive.ctx == undefined);
+				}
+				
+				// process._rawDebug('line 2 : ', dive.ctx);
 				setTimeout(() => {
 					setImmediate(() => {
+						if (version < 10) {
+							fixtures.line3 = true;
+						} else {
+							fixtures.line3 = (dive.ctx == undefined);
+						}
 						cb();
 					});
 				}, 100);
 			};
 		};
-		
+
 		dive((cb) => {
 			setTimeout(() => {
-				// process._rawDebug('ZZZZZZZZZZZ : ', dive.ctx);
+				if (version < 10) {
+					fixtures.drop1 = true;
+				} else {
+					fixtures.drop1 = (dive.ctx == name);
+				}
 				runStorage.push(jumpDescriptor(cb));
 			}, 100);
 		}, name)(() => {
 			setTimeout(() => {
+				if (version < 10) {
+					fixtures.drop2 = true;
+				} else {
+					fixtures.drop2 = (dive.ctx == name);
+				}
 				process.nextTick(() => {
-					// process._rawDebug('pre jump : ', dive.ctx);
+					if (version < 10) {
+						fixtures.pre_jump = true;
+					} else {
+						fixtures.pre_jump = (dive.ctx == name);
+					}
+					// process._rawDebug('pre_jump : ', dive.ctx);
 					process.emit('diveTestEvent');
 				});
 			}, 100);
 		});
 
-		// dive((cb) => {
-		// 	setTimeout(() => {
-		// 		process._rawDebug('ZZZZZZZZZZZ : ', dive.ctx);
-		// 		runStorage.push(() => {
-		// 			process._rawDebug('direct 2 : ', dive.ctx);
-		// 			setTimeout(() => {
-		// 				setImmediate(() => {
-		// 					cb();
-		// 				});
-		// 			}, 100);
-		// 		});
-		// 	}, 100);
-		// }, name)(() => {
-		// 	setTimeout(() => {
-		// 		process.nextTick(() => {
-		// 			process._rawDebug('pre jump : ', dive.ctx);
-		// 			process.emit('diveTestEvent');
-		// 		});
-		// 	}, 100);
-		// });
-
-		// dive(((cb) => {
-		// 	setTimeout(() => {
-		// 		process._rawDebug('ZZZZZZZZZZZ : ', dive.ctx);
-		// 		runStorage.push(jumpDescriptor(cb));
-		// 	}, 100);
-		// }).bind(null, () => {
-		// 	setTimeout(() => {
-		// 		process.nextTick(() => {
-		// 			process._rawDebug('pre jump : ', dive.ctx);
-		// 			process.emit('diveTestEvent');
-		// 		});
-		// 	}, 100);
-		// }), name)();
 	});
 });
 
