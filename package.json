@@ -33,6 +33,9 @@
     "async_hooks"
   ],
   "author": "went.out@gmail.com",
+  "contributors": [
+    "ak239 - Aleksei Koziatinskii <ak239spb@gmail.com>"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/wentout/dive/issues"

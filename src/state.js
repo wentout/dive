@@ -198,6 +198,9 @@ var inspector, session;
  * all code is synchronous
  * if it will fall to async mode, it will fail
  * therefore it is Experimental!
+ * 
+ * many many thanks to Alexey Kozyatinskiy
+ * ak239 - Aleksei Koziatinskii <ak239spb@gmail.com>
  */
 const tickHasDiveInternalScope = (nextTickHookResource) => {
 	var hasInternalScope = false;
