@@ -51,6 +51,7 @@ dive.disableAsyncHooks = () => {
 
 Object.defineProperty(dive, 'ctx', context.valueDescriptor);
 Object.defineProperty(dive, 'currentContext', context.valueDescriptor);
+dive.enableExperimentalPrediction = state.enableExperimentalPrediction;
 
 ['valueById', 'lastUnsetValue', 'currentContextStack', 'adjustErrorStack', 'measureById'].forEach(name => {
 	Object.defineProperty(dive, name, {

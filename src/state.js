@@ -242,11 +242,15 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 		}
 	};
 	session.on('Runtime.consoleAPICalled', listener);
-	inspector.console.log(nextTickHookResource.callback);
-	// eslint-disable-next-line no-console
-	// console.context('dive').log(nextTickHookResource.callback);
-	// eslint-disable-next-line no-console
-	// console.context('dive').log(nextTickHookResource.callback);
+	if (inspector.console) {
+		inspector.console.log(nextTickHookResource.callback);
+	} else {
+		// twice to be sure!
+		// eslint-disable-next-line no-console
+		console.context('dive').log(nextTickHookResource.callback);
+		// eslint-disable-next-line no-console
+		console.context('dive').log(nextTickHookResource.callback);
+	}
 	session.off('Runtime.consoleAPICalled', listener);
 	return hasInternalScope;
 };
