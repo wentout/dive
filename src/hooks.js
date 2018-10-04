@@ -54,6 +54,11 @@ const contextIdTypeCalcs = {
 	},
 
 	tickobject(asyncId, triggerId, resource) {
+		if (typeof state.tickHasDiveInternalScope !== 'function') {
+			// experimental prediction is off here
+			// so, it is useless to make any checks
+			return;
+		}
 		// all this considered non profitable
 		// cause it depends on how long is duration of the hop
 
