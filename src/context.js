@@ -288,7 +288,8 @@ Object.defineProperty(module.exports, 'create', {
 
 			var basePassed = false;
 			
-			const contextId = `${performance.now()}`;
+			// const contextId = `${performance.now()}`;
+			const contextId = performance.now();
 			
 			const props = {
 				fn,

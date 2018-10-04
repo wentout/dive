@@ -1,8 +1,9 @@
 
 const dive = require('../src/index');
 dive.enableAsyncHooks();
+dive.enableExperimentalPrediction();
 
-const fn = (done) => {
+const fn = (done, name) => {
 	const ctx = dive.ctx;
 	dive.emerge();
 	let testFailed = false;
@@ -12,7 +13,12 @@ const fn = (done) => {
 	if (dive.ctx !== undefined) {
 		testFailed = true;
 	}
-	// process._rawDebug(ctx, dive.ctx, testFailed);
+	if (name) {
+		if (name !== ctx) {
+			testFailed = true;
+		}
+	}
+	// // process._rawDebug(ctx, dive.ctx, testFailed);
 	done(testFailed);
 };
 
@@ -62,6 +68,7 @@ describe('dive callback test', () => {
 
 describe('dive uncaughtException test', () => {
 	it('should have a context', function (done) {
+		const name = 'uncaughtException test';
 		var listeners = process.listeners('uncaughtException');
 		process.removeAllListeners('uncaughtException');
 
@@ -73,12 +80,24 @@ describe('dive uncaughtException test', () => {
 			listeners.forEach(function (listener) {
 				process.on('uncaughtException', listener);
 			});
-		});
+		}, name);
 		process.on('uncaughtException', testUncExListener);
 
-		dive(() => {
+		const throwException = () => {
 			throw new Error('test error');
-		}, 'uncaughtException test')();
+		};
+		dive(() => {
+			try {
+				throwException();
+			} catch (err) {
+				// only nextTick on err to get out of
+				// the event loop and avoid state corruption.
+				process.nextTick(() => {
+					throw err;
+				});
+			}
+
+		}, name)();
 	});
 });
 
@@ -139,44 +158,190 @@ describe('dive multi context test', () => {
 	});
 });
 
-describe('nested jump from other code', () => {
-	it('should have a context', function (done) {
-		const bfn = fn.bind(null, done);
-		var runStorage = [];
 
+describe('nested jump from other code 1', () => {
+	it('should have a context', function (done) {
+		const name = 'nested jump test';
+		var bfn = fn.bind(null, done, name);
+
+		var runStorage = [dive(() => {
+			// process._rawDebug('must have no dive : ', dive.ctx);
+		}, 'other')];
 		const intervalPointer = setInterval(() => {
-			runStorage.forEach(run => {
+			runStorage.forEach((run, i) => {
 				process.nextTick(() => {
-					run();
+					setTimeout(() => {
+						process.emit('diveTestJumpEvent', i);
+					}, 50);
 				});
 			});
-			runStorage = [];
-		}, 100);
+			// runStorage = [];
+		}, 1000);
+
+		process.on('diveTestJumpEvent', (index) => {
+			// process._rawDebug('event 1 : ', dive.ctx);
+			runStorage[index]();
+		});
 
 		const eventRunner = () => {
+			// process._rawDebug('jump : ', dive.ctx);
 			bfn();
+			bfn = () => { };
 			clearInterval(intervalPointer);
 		};
 
-		process.once('diveTestEvent', eventRunner);
+		process.on('diveTestEvent', eventRunner);
+
+		const jumpDescriptor = (cb) => {
+			process.nextTick(() => {
+				// process._rawDebug('direct 1 : ', dive.ctx);
+			});
+			return () => {
+				// process._rawDebug('direct 2 : ', dive.ctx);
+				setTimeout(() => {
+					setImmediate(() => {
+						cb();
+					});
+				}, 100);
+			};
+		};
 
 		dive((cb) => {
 			setTimeout(() => {
-				runStorage.push(() => {
-					setTimeout(() => {
-						setImmediate(() => {
-							cb();
-						});
-					}, 100);
-				});
+				runStorage.push(jumpDescriptor(cb));
 			}, 100);
-		}, 'nested jump test')(() => {
+		}, name)(() => {
 			setTimeout(() => {
 				process.nextTick(() => {
 					process.emit('diveTestEvent');
 				});
 			}, 100);
 		});
+
+		// reall context mess example
+		for (let i = 0; i < 100; i++) {
+			((idx) => {
+				const name = `njt ${idx}`;
+				dive((cb) => {
+					setTimeout(() => {
+						runStorage.push(jumpDescriptor(cb));
+					}, 100);
+				}, name)(() => {
+					setTimeout(() => {
+						process.nextTick(() => {
+							process.emit('diveTestEvent');
+							// process._rawDebug('load : ', dive.ctx == name);
+						});
+					}, 100);
+				});
+			})(i);
+		}
+	});
+});
+
+
+describe('nested jump from other code 2', () => {
+	it('should have a context', function (done) {
+		const name = 'nested jump test';
+		var bfn = fn.bind(null, done, name);
+
+		var runStorage = [dive(() => {
+			setTimeout(() => {
+				// process._rawDebug('must have another dive : ', dive.ctx);
+			}, 100);
+		}, 'other ctx 1'), dive(() => {
+			setTimeout(() => {
+				// process._rawDebug('must have another dive : ', dive.ctx);
+			}, 100);
+		}, 'other ctx 2')];
+
+		const intervalPointer = setInterval(() => {
+			runStorage.forEach((run, i) => {
+
+				process.nextTick(() => {
+					setTimeout(() => {
+						process.emit('diveTestJumpEvent', i);
+					}, 50);
+				});
+			});
+			// runStorage = [];
+		}, 1000);
+
+		process.on('diveTestJumpEvent', (index) => {
+			// process._rawDebug('event 1 : ', dive.ctx);
+			runStorage[index]();
+		});
+
+		const eventRunner = () => {
+			// process._rawDebug('jump : ', dive.ctx);
+			bfn();
+			clearInterval(intervalPointer);
+		};
+
+		process.once('diveTestEvent', eventRunner);
+
+		const jumpDescriptor = (cb) => {
+			process.nextTick(() => {
+				// process._rawDebug('direct 1 : ', dive.ctx);
+			});
+			return () => {
+				// process._rawDebug('direct 2 : ', dive.ctx);
+				setTimeout(() => {
+					setImmediate(() => {
+						cb();
+					});
+				}, 100);
+			};
+		};
+		
+		dive((cb) => {
+			setTimeout(() => {
+				// process._rawDebug('ZZZZZZZZZZZ : ', dive.ctx);
+				runStorage.push(jumpDescriptor(cb));
+			}, 100);
+		}, name)(() => {
+			setTimeout(() => {
+				process.nextTick(() => {
+					// process._rawDebug('pre jump : ', dive.ctx);
+					process.emit('diveTestEvent');
+				});
+			}, 100);
+		});
+
+		// dive((cb) => {
+		// 	setTimeout(() => {
+		// 		process._rawDebug('ZZZZZZZZZZZ : ', dive.ctx);
+		// 		runStorage.push(() => {
+		// 			process._rawDebug('direct 2 : ', dive.ctx);
+		// 			setTimeout(() => {
+		// 				setImmediate(() => {
+		// 					cb();
+		// 				});
+		// 			}, 100);
+		// 		});
+		// 	}, 100);
+		// }, name)(() => {
+		// 	setTimeout(() => {
+		// 		process.nextTick(() => {
+		// 			process._rawDebug('pre jump : ', dive.ctx);
+		// 			process.emit('diveTestEvent');
+		// 		});
+		// 	}, 100);
+		// });
+
+		// dive(((cb) => {
+		// 	setTimeout(() => {
+		// 		process._rawDebug('ZZZZZZZZZZZ : ', dive.ctx);
+		// 		runStorage.push(jumpDescriptor(cb));
+		// 	}, 100);
+		// }).bind(null, () => {
+		// 	setTimeout(() => {
+		// 		process.nextTick(() => {
+		// 			process._rawDebug('pre jump : ', dive.ctx);
+		// 			process.emit('diveTestEvent');
+		// 		});
+		// 	}, 100);
+		// }), name)();
 	});
 });
 
@@ -186,7 +351,7 @@ describe('dive await test', () => {
 		const bfn = fn.bind(null, (failed) => {
 			done(failed || noContextChecker);
 		});
-		
+
 		const resolveAfter100ms = function (cb) {
 			return new Promise(resolve => {
 				setTimeout(function () {
@@ -197,9 +362,9 @@ describe('dive await test', () => {
 		setTimeout(function () {
 			noContextChecker = dive.ctx;
 		}, 100);
-		
+
 		dive(async (cb) => {
-			(await resolveAfter100ms (cb))();
+			(await resolveAfter100ms(cb))();
 		}, 'await test')(bfn);
 	});
 });

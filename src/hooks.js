@@ -43,14 +43,20 @@ const contextIdTypeCalcs = {
 
 	promise(asyncId, triggerId) {
 		// promises are based on triggerId
-		const it = state.asyncIdHooks[triggerId];
-		if (!it) {
+		const previous = state.asyncIdHooks[triggerId];
+		if (!previous) {
 			return null;
 		}
-		return it.id;
+		if (previous.type !== 'promise') {
+			return null;
+		}
+		return previous.id;
 	},
 
-	tickobject(asyncId, triggerId) {
+	tickobject(asyncId, triggerId, resource) {
+		// all this considered non profitable
+		// cause it depends on how long is duration of the hop
+
 		const prevId = asyncId - 1;
 		const it = state.asyncIdHooks[prevId];
 		if (!it) {
@@ -63,19 +69,27 @@ const contextIdTypeCalcs = {
 			return null;
 		}
 
-		if (
-			probe.triggerId === it.triggerId ||
-			triggerId === it.triggerId ||
-			probe.eid === it.tid ||
-			state.asyncIdHooks[probe.triggerId]
-		) {
+		if (it.id !== probe.id) {
+			return null;
+		}
+
+		// so we've checked
+		// both of previous context:
+		// -- exists
+		// -- with the same id
+		// and this context is NextTick'ed
+		// therefore we assume
+		// it is the same context
+		const isNextTicked = state.tickHasDiveInternalScope(resource);
+		if (isNextTicked) {
 			return it.id;
 		}
+
 		return null;
 	}
 };
 
-const getContextId = (type, asyncId, triggerId) => {
+const getContextId = (type, asyncId, triggerId, resource) => {
 
 	const stateId = getIdFromState();
 	if (stateId) {
@@ -86,7 +100,7 @@ const getContextId = (type, asyncId, triggerId) => {
 		return null;
 	}
 
-	return contextIdTypeCalcs[type](asyncId, triggerId);
+	return contextIdTypeCalcs[type](asyncId, triggerId, resource);
 
 };
 
@@ -109,7 +123,7 @@ const init = (asyncId, type, triggerId, resource) => {
 
 	type = type.toLowerCase();
 
-	const contextId = getContextId(type, asyncId, triggerId);
+	const contextId = getContextId(type, asyncId, triggerId, resource);
 
 	if (!contextId) {
 		// cause nothing to track from here
@@ -365,7 +379,7 @@ module.exports = {
 	// on~off
 	enable,
 	disable,
-	
+
 	promisePointer
 
 };

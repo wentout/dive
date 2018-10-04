@@ -188,3 +188,84 @@ Object.defineProperty(module.exports, 'context', {
 	configurable: false,
 	enumerable: false
 });
+
+
+var inspector, session;
+
+/**
+ * @param {object} nextTickHookResource pointer of async_hooks.init hook resource
+ * 
+ * all code is synchronous
+ * if it will fall to async mode, it will fail
+ * therefore it is Experimental!
+ */
+const tickHasDiveInternalScope = (nextTickHookResource) => {
+	var hasInternalScope = false;
+	const listener = ({ params }) => {
+		if (params.args && params.args[0] && params.args[0].type == 'function') {
+			const objectId = params.args[0].objectId;
+			session.post('Runtime.getProperties', {
+				objectId,
+				generatePreview: true
+			}, (err, data) => {
+				if (err) { return; }
+				const objectId = data.internalProperties[1].value.objectId;
+				session.post('Runtime.getProperties', {
+					objectId,
+					generatePreview: true
+				}, (err, data) => {
+					if (err) { return; }
+					data.result.forEach((it) => {
+						const objectId = it.value.objectId;
+						if (it.value.description === 'Global') {
+							return;
+						}
+						if (hasInternalScope) {
+							return;
+						}
+						session.post('Runtime.getProperties', { objectId }, (err, { result }) => {
+							if (err) { return; }
+							const it = result[0];
+							if (!(it && it.name === 'dive') || !it.value || !it.value.description) {
+								return;
+							}
+							if (it.value.description.indexOf('return diveFunctionWrapper') > 0) {
+								hasInternalScope = true;
+							}
+						});
+					});
+				});
+			});
+		}
+	};
+	session.on('Runtime.consoleAPICalled', listener);
+	inspector.console.log(nextTickHookResource.callback);
+	// eslint-disable-next-line no-console
+	// console.context('dive').log(nextTickHookResource.callback);
+	// eslint-disable-next-line no-console
+	// console.context('dive').log(nextTickHookResource.callback);
+	session.off('Runtime.consoleAPICalled', listener);
+	return hasInternalScope;
+};
+
+Object.defineProperty(module.exports, 'enableExperimentalPrediction', {
+	get() {
+		return () => {
+			inspector = require('inspector');
+			session = new inspector.Session();
+			session.connect();
+
+			session.post('Runtime.enable', () => { });
+
+			Object.defineProperty(module.exports, 'tickHasDiveInternalScope', {
+				get() {
+					return tickHasDiveInternalScope;
+				},
+				configurable: false,
+				enumerable: false
+			});
+		};
+	},
+	configurable: false,
+	enumerable: false
+});

@@ -19,6 +19,12 @@ const optsDefaults = {
 	onPerfomance: undefined
 };
 
+const isDiveBindedFunctionPointer = Symbol('dive binded fnunction boolean sign');
+
+
+// forever young, forever drunk
+const bind = Function.prototype.bind;
+
 // basic functionality
 /**
  * syncronous function call carrator
@@ -36,7 +42,7 @@ const optsDefaults = {
  * @param {array} _args other arguments for wrapped function call
  */
 
-const dive = function (fn, value, opts = optsDefaults) {
+const diveFunctionWrapper = function (fn, value, opts = optsDefaults) {
 
 	opts = Object.assign({}, optsDefaults, opts);
 
@@ -99,10 +105,12 @@ const dive = function (fn, value, opts = optsDefaults) {
 				}
 				return arg;
 			});
+			args.unshift(this);
 			patchingInProgress = false;
 		}
 
-		const run = fn.bind(this, ...args);
+		const run = bind.call(fn, ...args);
+		run[isDiveBindedFunctionPointer] = true;
 		var answer = run();
 
 		if (!opts.skipAnswer && typeof answer == 'function') {
@@ -120,28 +128,18 @@ const dive = function (fn, value, opts = optsDefaults) {
 
 	};
 
+	base[isDiveBindedFunctionPointer] = true;
+
 	!patchingInProgress && context.unset();
 	return base;
 
 };
 
-// /**
-//  * enable Function.prototype.dive patch
-//  */
-// dive.enableFunctions = () => {
-// 	if (Function.prototype.dive) {
-// 		return;
-// 	}
-// 	Function.prototype.dive = dive;
-// };
+const dive = function (...args) {
+	return diveFunctionWrapper.call(this, ...args);
+};
 
-// /**
-//  * disable Function.prototype.dive patch
-//  */
-// dive.disableFunctions = () => {
-// 	delete Function.prototype.dive;
-// };
-
+dive.isDiveBindedFunctionPointer = isDiveBindedFunctionPointer;
 
 /**
  * for currentContext:
