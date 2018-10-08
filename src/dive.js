@@ -72,7 +72,7 @@ const diveFunctionWrapper = function (fn, value, opts = optsDefaults) {
 		}
 	} else {
 		if (context.values.has(value)) {
-			throw errors.ContextAlreadyExists('same context is already started');
+			throw errors.ContextAlreadyExists('same context is already started', value);
 		}
 		// ! creation itself
 		contextId = context.create(value, fn, opts);
@@ -127,6 +127,10 @@ const diveFunctionWrapper = function (fn, value, opts = optsDefaults) {
 		return answer;
 
 	};
+	
+	Object.defineProperty(base, 'name', {
+		value : `contextDiveBinded : ${fn.name}`
+	});
 
 	base[isDiveBindedFunctionPointer] = true;
 
@@ -165,8 +169,20 @@ const emerge = (id = context.id) => {
 		lastContext
 	};
 };
+const emergeAll = () => {
+	return [...context.runningContextsIDs].reduce((allContexts, id) => {
+		allContexts[`${id}`] = emerge(id);
+		return allContexts;
+	}, {});
+};
+Object.defineProperty(dive, 'emerge', {
+	value : emerge
+});
 
-dive.emerge = emerge;
+Object.defineProperty(dive, 'emergeAll', {
+	value : emergeAll
+});
+
 dive.uncaughtExceptionListener = () => {
 	// Let sync error code runs with context
 	// we will destroy it immediately after

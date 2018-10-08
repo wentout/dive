@@ -32,7 +32,6 @@ dive.hooks = hooks;
 		get() {
 			return hooks[name];
 		},
-		configurable: false,
 		enumerable: true
 	});
 });
@@ -58,7 +57,6 @@ dive.enableExperimentalPrediction = state.enableExperimentalPrediction;
 		get() {
 			return context[name];
 		},
-		configurable: false,
 		enumerable: true
 	});
 });
@@ -84,5 +82,13 @@ dive.getPromiseMeasure = (promise) => {
 dive.measure = () => {
 	return dive.context.measure;
 };
+
+Object.defineProperty(dive, 'hooksEnabled', {
+	get() {
+		return hooks.enabled;
+	},
+	enumerable: true
+});
+
 
 module.exports = dive;

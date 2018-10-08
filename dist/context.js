@@ -46,9 +46,7 @@ Object.defineProperty(module.exports, 'self', {
 		return (id = ID.current) => {
 			return runningContexts.get(id);
 		};
-	},
-	configurable: false,
-	enumerable: false
+	}
 });
 
 Object.defineProperty(module.exports, 'hasId', {
@@ -56,9 +54,7 @@ Object.defineProperty(module.exports, 'hasId', {
 		return id => {
 			return runningContexts.has(id);
 		};
-	},
-	configurable: false,
-	enumerable: false
+	}
 });
 
 const valueDescriptor = {
@@ -85,8 +81,6 @@ Object.defineProperty(module.exports, 'valueDescriptor', {
 	get() {
 		return valueDescriptor;
 	},
-	configurable: false,
-	enumerable: false
 });
 Object.defineProperty(module.exports, 'value', valueDescriptor);
 Object.defineProperty(module.exports, 'currentContextValue', valueDescriptor);
@@ -102,7 +96,6 @@ Object.defineProperty(module.exports, 'currentContextStack', {
 	get() {
 		return currentContextStack();
 	},
-	configurable: false,
 	enumerable: true
 });
 Object.defineProperty(module.exports, 'adjustErrorStack', {
@@ -116,7 +109,6 @@ Object.defineProperty(module.exports, 'adjustErrorStack', {
 			return error.stack;
 		};
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -129,7 +121,6 @@ Object.defineProperty(module.exports, 'valueById', {
 			return undefined;
 		};
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -142,7 +133,6 @@ Object.defineProperty(module.exports, 'optsById', {
 			return undefined;
 		};
 	},
-	configurable: false,
 	enumerable: true
 });
 Object.defineProperty(module.exports, 'currentOpts', {
@@ -152,7 +142,6 @@ Object.defineProperty(module.exports, 'currentOpts', {
 		}
 		return undefined;
 	},
-	configurable: false,
 	enumerable: true
 });
 Object.defineProperty(module.exports, 'basePassed', {
@@ -168,7 +157,6 @@ Object.defineProperty(module.exports, 'basePassed', {
 		}
 		return undefined;
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -181,7 +169,6 @@ Object.defineProperty(module.exports, 'counters', {
 			return undefined;
 		};
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -197,7 +184,6 @@ Object.defineProperty(module.exports, 'measureById', {
 	get() {
 		return measureById;
 	},
-	configurable: false,
 	enumerable: true
 });
 Object.defineProperty(module.exports, 'measure', {
@@ -207,7 +193,6 @@ Object.defineProperty(module.exports, 'measure', {
 		}
 		return measureById(ID.current);
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -219,7 +204,6 @@ const idPropDescriptor = {
 		return null;
 	},
 	configurable: false,
-	enumerable: true
 };
 Object.defineProperty(module.exports, 'id', idPropDescriptor);
 Object.defineProperty(module.exports, 'currentId', idPropDescriptor);
@@ -238,15 +222,13 @@ Object.defineProperty(module.exports, 'lastUnsetValue', {
 	get() {
 		return lastUnsetValue();
 	},
-	configurable: false,
 	enumerable: true
 });
 
-Object.defineProperty(module.exports, 'runningContextsNumbers', {
+Object.defineProperty(module.exports, 'runningContextsIDs', {
 	get() {
 		return runningContexts.keys();
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -254,7 +236,6 @@ Object.defineProperty(module.exports, 'runningContextsCount', {
 	get() {
 		return runningContexts.size;
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -334,7 +315,6 @@ Object.defineProperty(module.exports, 'create', {
 				get() {
 					return runningContextsValues.get(props);
 				},
-				configurable: false,
 				enumerable: true
 			});
 
@@ -346,7 +326,6 @@ Object.defineProperty(module.exports, 'create', {
 					basePassed = true;
 					props.startTime = performance.now();
 				},
-				configurable: false,
 				enumerable: true
 			});
 
@@ -368,7 +347,6 @@ Object.defineProperty(module.exports, 'select', {
 			return runningContexts.get(ID.current).value;
 		};
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -382,7 +360,6 @@ Object.defineProperty(module.exports, 'unset', {
 	get() {
 		return unset;
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -411,6 +388,14 @@ Object.defineProperty(module.exports, 'destroy', {
 	get() {
 		return destroy;
 	},
-	configurable: false,
 	enumerable: true
 });
+
+Object.defineProperty(module.exports, 'hooksEnabled', {
+	get() {
+		return hooks.enabled;
+	},
+	enumerable: true
+});
+
+

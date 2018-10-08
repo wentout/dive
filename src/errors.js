@@ -8,6 +8,7 @@ const errorCodes = {
 	'NoStartupScope': 'unable to start dive without initial function',
 };
 
+const util = require('util');
 class DiveError extends Error {
 	constructor(code, ...args) {
 		const message = `cause -> ${errorCodes[code]}`;
@@ -20,10 +21,7 @@ class DiveError extends Error {
 		stack[1] = '';
 		if (args.length) {
 			stack[1] = args.map(arg => {
-				try {
-					arg = JSON.stringify(arg);
-				} catch (err) { /* nothing here */ }
-				return arg;
+				return util.inspect(arg);
 			}).join('\n');
 		}
 		this.stack = stack.join('\n');

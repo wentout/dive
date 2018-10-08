@@ -21,7 +21,9 @@ const defaultState = {
 	triggerHooks: getNewOject,
 	promiseHooks: getNewOject,
 
-	trace: getNewArray
+	trace: getNewArray,
+
+	tickObjectsToCheck: getNewOject
 
 };
 
@@ -53,7 +55,6 @@ Object.defineProperty(module.exports, 'baseRunning', {
 		baseRunning = !!value;
 		return baseRunning;
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -68,7 +69,6 @@ Object.defineProperty(module.exports, 'hookRunning', {
 		}
 		return hookRunning;
 	},
-	configurable: false,
 	enumerable: true
 });
 Object.defineProperty(module.exports, 'runningHookId', {
@@ -85,7 +85,6 @@ Object.defineProperty(module.exports, 'runningHookId', {
 		hookRunning = false;
 		return runningHookId;
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -167,7 +166,6 @@ Object.defineProperty(module.exports, 'saveHooksContext', {
 	get() {
 		return saveHooksContext;
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -175,7 +173,6 @@ Object.defineProperty(module.exports, 'cleanup', {
 	get() {
 		return cleanup;
 	},
-	configurable: false,
 	enumerable: true
 });
 
@@ -185,7 +182,6 @@ Object.defineProperty(module.exports, 'context', {
 	get() {
 		return context;
 	},
-	configurable: false,
 	enumerable: false
 });
 
@@ -202,9 +198,13 @@ var inspector, session;
  * many many thanks to Alexey Kozyatinskiy
  * ak239 - Aleksei Koziatinskii <ak239spb@gmail.com>
  */
-const tickHasDiveInternalScope = (nextTickHookResource) => {
-	var hasInternalScope = false;
+const tickCheckDiveInternalScope = (nextTickHookResource) => {
+	var internalScope = {
+		listenerWorks: false,
+		scopeFound: false,
+	};
 	const listener = ({ params }) => {
+		internalScope.listenerWorks = true;
 		if (params.args && params.args[0] && params.args[0].type == 'function') {
 			const objectId = params.args[0].objectId;
 			session.post('Runtime.getProperties', {
@@ -212,7 +212,16 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 				generatePreview: true
 			}, (err, data) => {
 				if (err) { return; }
-				const objectId = data.internalProperties[1].value.objectId;
+				var scopes = null;
+				data.internalProperties.forEach(it => {
+					if (it.name === '[[Scopes]]' && it.value) {
+						scopes = it.value;
+					}
+				});
+				if (!scopes || !scopes.objectId) {
+					return;
+				}
+				const objectId = scopes.objectId;
 				session.post('Runtime.getProperties', {
 					objectId,
 					generatePreview: true
@@ -223,7 +232,7 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 						if (it.value.description === 'Global') {
 							return;
 						}
-						if (hasInternalScope) {
+						if (internalScope.scopeFound) {
 							return;
 						}
 						session.post('Runtime.getProperties', { objectId }, (err, { result }) => {
@@ -233,7 +242,7 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 								return;
 							}
 							if (it.value.description.indexOf('return diveFunctionWrapper') > 0) {
-								hasInternalScope = true;
+								internalScope.scopeFound = true;
 							}
 						});
 					});
@@ -241,7 +250,7 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 			});
 		}
 	};
-	session.on('Runtime.consoleAPICalled', listener);
+	session.once('Runtime.consoleAPICalled', listener);
 	if (inspector.console) {
 		inspector.console.log(nextTickHookResource.callback);
 	} else {
@@ -251,28 +260,51 @@ const tickHasDiveInternalScope = (nextTickHookResource) => {
 		// eslint-disable-next-line no-console
 		console.context('dive').log(nextTickHookResource.callback);
 	}
-	session.off('Runtime.consoleAPICalled', listener);
-	return hasInternalScope;
+	return internalScope;
 };
 
+const version = process.versions.node.split('.')[0];
+var experimentalPredictionEnabled = false;
+
+Object.defineProperty(module.exports, 'experimentalPredictionEnabled', {
+	get () {
+		return !!experimentalPredictionEnabled;
+	},
+	enumerable: true
+});
 Object.defineProperty(module.exports, 'enableExperimentalPrediction', {
 	get() {
 		return () => {
+			if (version < 10) {
+				process._rawDebug(`
+
+	For [ enableExperimentalPrediction ] usage
+	node verion must be greater than 10
+
+				`);
+			}
+			if (!context.hooksEnabled) {
+				process._rawDebug(`
+
+	For [ enableExperimentalPrediction ] usage
+	you need to '.enableAsyncHooks()' at first
+
+				`);
+			}
+
 			inspector = require('inspector');
 			session = new inspector.Session();
 			session.connect();
 
 			session.post('Runtime.enable', () => { });
 
-			Object.defineProperty(module.exports, 'tickHasDiveInternalScope', {
+			Object.defineProperty(module.exports, 'tickCheckDiveInternalScope', {
 				get() {
-					return tickHasDiveInternalScope;
-				},
-				configurable: false,
-				enumerable: false
+					return tickCheckDiveInternalScope;
+				}
 			});
+			experimentalPredictionEnabled = true;
 		};
 	},
-	configurable: false,
 	enumerable: false
 });

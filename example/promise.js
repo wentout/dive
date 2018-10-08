@@ -6,8 +6,8 @@
 process._rawDebug('\n\n\n PROMISE EXAMPLE STARTED \n\n\n');
 
 process.on('unhandledRejection', (error, promise) => {
-	const id = promise[dive.promisePointer];
-	process._rawDebug(`>>> unhandledRejection for [ ${dive.getPromiseContext(promise)} ]`);
+	process._rawDebug(`>>> unhandledRejection for [ ${dive.ctx} ] : might wrong context nothing here !!!`);
+	process._rawDebug(`>>> unhandledRejection for [ ${dive.getPromiseContext(promise)} ] : CORRECT context is this !!!`);
 	process._rawDebug(`\t duration [ ${dive.getPromiseMeasure(promise)} ]\n`);
 	process._rawDebug('error ::: ', error, '\n\n');
 });

@@ -53,11 +53,12 @@ const contextIdTypeCalcs = {
 		return previous.id;
 	},
 
-	tickobject(asyncId, triggerId, resource) {
-		if (typeof state.tickHasDiveInternalScope !== 'function') {
+	// tickobject(asyncId, triggerId, resource) {
+	tickobject(asyncId) {
+		if (!state.experimentalPredictionEnabled) {
 			// experimental prediction is off here
 			// so, it is useless to make any checks
-			return;
+			return null;
 		}
 		// all this considered non profitable
 		// cause it depends on how long is duration of the hop
@@ -85,10 +86,11 @@ const contextIdTypeCalcs = {
 		// and this context is NextTick'ed
 		// therefore we assume
 		// it is the same context
-		const isNextTicked = state.tickHasDiveInternalScope(resource);
-		if (isNextTicked) {
-			return it.id;
-		}
+		
+		// const { listenerWorks, scopeFound } = state.tickCheckDiveInternalScope(resource);
+		// if (listenerWorks && scopeFound) {
+		// 	state.tickObjectsToCheck[asyncId] = true;
+		// }
 
 		return null;
 	}
@@ -196,7 +198,7 @@ const before = (asyncId) => {
 	}
 
 	showDebugMark('BEFORE', it);
-
+	
 	if (it.stage !== 'init' && state.trace.length) {
 		it.ctxFail = true;
 	}
@@ -356,11 +358,14 @@ const callbacks = {
 
 const asyncHook = async_hooks.createHook(callbacks);
 
+var hooksEnabled = false;
 const enable = () => {
+	hooksEnabled = true;
 	return asyncHook.enable();
 };
 
 const disable = () => {
+	hooksEnabled = false;
 	return asyncHook.disable();
 };
 
@@ -385,7 +390,13 @@ module.exports = {
 	enable,
 	disable,
 
-	promisePointer
-
+	promisePointer, 
+	
 };
 
+Object.defineProperty(module.exports, 'enabled', {
+	get() {
+		return !!hooksEnabled;
+	},
+	enumerable: true
+});

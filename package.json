@@ -6,7 +6,7 @@
   "scripts": {
     "build": "rm -rf ./dist && mkdir ./dist && cp -r ./src/* ./dist",
     "example": "node example/simple.js && node example/promise.js",
-    "test": "mocha --allow-uncaught",
+    "test": "mocha test/index --allow-uncaught && mocha test/nested-jump.2.1 && mocha test/nested-jump.2.2",
     "postinstall": "npm run build"
   },
   "files": [
