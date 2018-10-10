@@ -2,6 +2,7 @@
 
 const errors = require('./errors');
 const state = require('./state');
+
 const context = state.context;
 
 /**
@@ -11,7 +12,6 @@ const context = state.context;
  */
 var patchingInProgress = false;
 
-
 const optsDefaults = {
 	skipCbArg: false,
 	skipAnswer: false,
@@ -20,7 +20,6 @@ const optsDefaults = {
 };
 
 const isDiveBindedFunctionPointer = Symbol('dive binded fnunction boolean sign');
-
 
 // forever young, forever drunk
 const bind = Function.prototype.bind;
@@ -46,16 +45,17 @@ const diveFunctionWrapper = function (fn, value, opts = optsDefaults) {
 
 	opts = Object.assign({}, optsDefaults, opts);
 
-	// get rid of dive while diving
-	// cause we can't handle go deeper
-	if (context.value && !state.baseRunning) {
-		throw errors.ContextAlreadyExists();
-	}
+	if (!patchingInProgress) {
+		// get rid of dive while diving
+		// cause we can't handle go deeper
+		if (context.value && !state.baseRunning) {
+			throw errors.ContextAlreadyExists();
+		}
 
-	if (state.hookRunning) {
-		throw errors.ContextCorrupted();
+		if (state.hookRunning) {
+			throw errors.ContextCorrupted();
+		}
 	}
-
 	if (typeof fn !== 'function') {
 		throw errors.NoStartupScope();
 	}
@@ -111,7 +111,28 @@ const diveFunctionWrapper = function (fn, value, opts = optsDefaults) {
 
 		const run = bind.call(fn, ...args);
 		run[isDiveBindedFunctionPointer] = true;
-		var answer = run();
+
+		var answer;
+
+		const self = context.self(contextId);
+		const asyncResource = self.asyncResource;
+		if (!asyncResource) {
+			throw errors.ContextCorrupted('no context async resource');
+		}
+		if (typeof asyncResource.runInAsyncScope === 'function') {
+			asyncResource.runInAsyncScope(() => {
+				answer = run();
+			});
+		} else {
+			if (typeof asyncResource.emitBefore === 'function') {
+				asyncResource.emitBefore();
+			}
+			answer = run();
+			if (typeof asyncResource.emitAfter === 'function') {
+				asyncResource.emitAfter();
+			}
+		}
+		// asyncResource.emitDestroy();
 
 		if (!opts.skipAnswer && typeof answer == 'function') {
 			patchingInProgress = true;
@@ -127,9 +148,9 @@ const diveFunctionWrapper = function (fn, value, opts = optsDefaults) {
 		return answer;
 
 	};
-	
+
 	Object.defineProperty(base, 'name', {
-		value : `contextDiveBinded : ${fn.name}`
+		value: `contextDiveBinded : ${fn.name}`
 	});
 
 	base[isDiveBindedFunctionPointer] = true;
@@ -176,11 +197,11 @@ const emergeAll = () => {
 	}, {});
 };
 Object.defineProperty(dive, 'emerge', {
-	value : emerge
+	value: emerge
 });
 
 Object.defineProperty(dive, 'emergeAll', {
-	value : emergeAll
+	value: emergeAll
 });
 
 dive.uncaughtExceptionListener = () => {
@@ -199,6 +220,33 @@ dive.uncaughtExceptionListener = () => {
 };
 
 process.on('uncaughtException', dive.uncaughtExceptionListener);
+
+Object.defineProperty(dive, 'hopAutoWrap', {
+	get() {
+		return function (fn2wrap) {
+			return function (...args) {
+				const contextId = state.context.id;
+				if (contextId) {
+					patchingInProgress = true;
+					args = args.map(arg => {
+						if (typeof arg === 'function' && !arg[isDiveBindedFunctionPointer]) {
+							arg = dive(arg, state.context.value, state.context.currentOpts);
+						}
+						return arg;
+					});
+					patchingInProgress = false;
+				}
+				var answer = fn2wrap.call(this, ...args);
+				if (typeof answer === 'function' && !answer[isDiveBindedFunctionPointer] && contextId) {
+					patchingInProgress = true;
+					answer = dive(answer, state.context.value, state.context.currentOpts);
+					patchingInProgress = false;
+				}
+				return answer;
+			};
+		};
+	}
+});
 
 module.exports = dive;
 

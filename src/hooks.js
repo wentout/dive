@@ -14,10 +14,10 @@ const tid = () => {
 	return 0 + async_hooks.triggerAsyncId();
 };
 
-const showDebugMark = (mark, it) => {
+const showDebugMark = (mark, it, anyway) => {
 	const opts = state.context.optsById(it.id);
-	if (opts && opts.debugMode) {
-		process._rawDebug(mark.padEnd(7), ` : AsyncID : ${it.asyncId} | Context : ${it.id}`);
+	if ((opts && opts.debugMode) || anyway) {
+		process._rawDebug(mark.padEnd(7), ` : AsyncID : ${it.asyncId} : TriggerID : ${it.triggerId} : eid : ${it.eid} : tid : ${it.tid} | ${it.type} | Context : ${it.id}`);
 	}
 };
 
@@ -54,45 +54,49 @@ const contextIdTypeCalcs = {
 	},
 
 	// tickobject(asyncId, triggerId, resource) {
-	tickobject(asyncId) {
-		if (!state.experimentalPredictionEnabled) {
-			// experimental prediction is off here
-			// so, it is useless to make any checks
-			return null;
-		}
-		// all this considered non profitable
-		// cause it depends on how long is duration of the hop
+	// // tickobject(asyncId) {
+	// 	if (!state.experimentalPredictionEnabled) {
+	// 		// experimental prediction is off here
+	// 		// so, it is useless to make any checks
+	// 		return null;
+	// 	}
+	// 	// all this considered non profitable
+	// 	// cause it depends on how long is duration of the hop
 
-		const prevId = asyncId - 1;
-		const it = state.asyncIdHooks[prevId];
-		if (!it) {
-			return null;
-		}
+	// 	const prevId = asyncId - 1;
+	// 	const it = state.asyncIdHooks[prevId];
+	// 	if (!it) {
+	// 		return null;
+	// 	}
 
-		// may that tick produced by our context ?
-		const probe = state.asyncIdHooks[prevId - 1];
-		if (!probe) {
-			return null;
-		}
+	// 	// may that tick produced by our context ?
+	// 	const probe = state.asyncIdHooks[prevId - 1];
+	// 	if (!probe) {
+	// 		return null;
+	// 	}
 
-		if (it.id !== probe.id) {
-			return null;
-		}
+	// 	if (it.id !== probe.id) {
+	// 		return null;
+	// 	}
 
-		// so we've checked
-		// both of previous context:
-		// -- exists
-		// -- with the same id
-		// and this context is NextTick'ed
-		// therefore we assume
-		// it is the same context
-		
-		// const { listenerWorks, scopeFound } = state.tickCheckDiveInternalScope(resource);
-		// if (listenerWorks && scopeFound) {
-		// 	state.tickObjectsToCheck[asyncId] = true;
-		// }
+	// 	// so we've checked
+	// 	// both of previous context:
+	// 	// -- exists
+	// 	// -- with the same id
+	// 	// and this context is NextTick'ed
+	// 	// therefore we assume
+	// 	// it is the same context
 
-		return null;
+	// 	const { listenerWorks, scopeFound } = state.tickCheckDiveInternalScope(resource);
+	// 	// if (listenerWorks && scopeFound) {
+	// 	// 	state.tickObjectsToCheck[asyncId] = true;
+	// 	// }
+
+	// 	return null;
+	// },
+
+	dive_async_resource() {
+		return state.context.currentCreationContextId;
 	}
 };
 
@@ -124,6 +128,7 @@ const getContextId = (type, asyncId, triggerId, resource) => {
  */
 const init = (asyncId, type, triggerId, resource) => {
 
+
 	if (state.asyncIdHooks[asyncId]) {
 		throw errors.ContextCorrupted('called twice');
 	}
@@ -131,6 +136,14 @@ const init = (asyncId, type, triggerId, resource) => {
 	type = type.toLowerCase();
 
 	const contextId = getContextId(type, asyncId, triggerId, resource);
+
+	// showDebugMark('ALL INIT ->>>>>', {
+	// 	asyncId, triggerId,
+	// 	eid: eid(),
+	// 	tid: tid(),
+	// 	type,
+	// 	id: contextId
+	// });
 
 	if (!contextId) {
 		// cause nothing to track from here
@@ -191,22 +204,32 @@ const init = (asyncId, type, triggerId, resource) => {
  * @param {number} asyncId 
  */
 const before = (asyncId) => {
-
+	// process._rawDebug('ALL BEFORE 0 ->>>>>', asyncId, tid());
 	const it = state.asyncIdHooks[asyncId];
+	// process._rawDebug('ALL BEFORE 1 ->>>>>', !!it);
 	if (!it) {
+		if (state.context.id && state.runningHookId !== asyncId) {
+			state.hookRunning = false;
+			if (!state.baseRunning) {
+				state.context.unset();
+			}
+			// process._rawDebug('Proposal of JUMP description 4 NextTick ->>>>>', asyncId);
+
+		}
 		return;
 	}
 
 	showDebugMark('BEFORE', it);
-	
-	if (it.stage !== 'init' && state.trace.length) {
+
+	if (it.stage !== 'init' && state.trace.length && it.type !== 'dive_async_resource') {
 		it.ctxFail = true;
 	}
 
+	// increasing hook dive
 	state.trace.push(asyncId);
 
 	if (it.ctxFail) {
-		throw errors.ContextCorrupted();
+		throw errors.ContextCorrupted(`stage : ${it.stage}`);
 	}
 
 	// ... MEANINGFULL NOTE ...
@@ -239,7 +262,7 @@ const before = (asyncId) => {
  * @param {number} asyncId 
  */
 const after = (asyncId) => {
-
+	// process._rawDebug('ALL AFTER 0 ->>>>>', asyncId);
 	const it = state.asyncIdHooks[asyncId];
 
 	if (!it) {
@@ -254,21 +277,27 @@ const after = (asyncId) => {
 
 	showDebugMark('AFTER', it);
 
-	const traceId = state.trace.pop();
+	// decreasing hook dive
+	const traceId = state.trace.length ? state.trace.pop() : null;
 
-	it.ctxFail = !['before', 'resolve'].includes(it.stage);
+	it.ctxFail = !['before', 'resolve'].includes(it.stage) && it.type !== 'dive_async_resource';
 	if (it.ctxFail) {
+		// process._rawDebug('it.stage', it.stage);
 		throw errors.ContextCorrupted();
 	}
 
-	if (traceId !== asyncId) {
-		throw errors.ContextCorrupted('after hook out of context');
-	} else {
-		if (!state.hookRunning) {
-			// throw errors.ContextCorrupted('after hook without context');
-			throw errors.ContextCorrupted(`after hook without context ${traceId} ${asyncId} ${state.runningHookId}`);
-		} else if (state.context.id !== it.id) {
-			throw errors.ContextCorrupted('after hook context split');
+	if (traceId) {
+		if (traceId !== asyncId) {
+			// process._rawDebug('ALL AFTER ERROR ->>>>>', asyncId, traceId, it.id);
+			throw errors.ContextCorrupted('after hook out of context');
+		} else {
+			// if (state.hookRunning) {
+			// 	throw errors.ContextCorrupted('after hook context split');
+			// }
+			if (state.context.id && state.context.id !== it.id) {
+				// throw errors.ContextCorrupted('after hook without context');
+				throw errors.ContextCorrupted(`after hook without context ${traceId} ${asyncId} ${state.runningHookId}`);
+			}
 		}
 	}
 
@@ -276,7 +305,14 @@ const after = (asyncId) => {
 	state.context.counters(it.id).after++;
 
 	state.hookRunning = false;
-	state.context.unset();
+	if (!state.baseRunning) {
+		state.context.unset();
+		if (state.context.id) {
+			throw errors.ContextCorrupted('context exists after hook');
+		}
+	}
+
+	// process._rawDebug('ALL AFTER 1 ->>>>>', asyncId, 'trlen', state.trace.length);
 
 	if (state.trace.length) {
 		const selectAsyncId = state.trace.slice(-1)[0];
@@ -317,7 +353,9 @@ const destroy = (asyncId) => {
 		if (traceId !== it.id) {
 			throw errors.ContextCorrupted('order failed');
 		}
-		state.context.unset();
+		if (!state.baseRunning) {
+			state.context.unset();
+		}
 	}
 
 	it.stage = 'destroy';
@@ -337,9 +375,9 @@ const promiseResolve = (asyncId) => {
 	// 2. patch context ?
 	const it = state.asyncIdHooks[asyncId];
 	if (!it) {
-		if (state.hookRunning) {
-			throw errors.ContextCorrupted('promise');
-		}
+		// if (state.hookRunning) {
+		// throw errors.ContextCorrupted('promise');
+		// }
 		return;
 	}
 
@@ -390,8 +428,8 @@ module.exports = {
 	enable,
 	disable,
 
-	promisePointer, 
-	
+	promisePointer,
+
 };
 
 Object.defineProperty(module.exports, 'enabled', {

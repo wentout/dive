@@ -1,6 +1,7 @@
-'use strict';
+// 'use strict';
 
 const { performance } = require('perf_hooks');
+const { AsyncResource } = require('async_hooks');
 
 const errors = require('./errors');
 const hooks = require('./hooks');
@@ -258,6 +259,12 @@ const getStack = () => {
 	return stack.join('\n');
 };
 
+var currentCreationContextId = null;
+Object.defineProperty(module.exports, 'currentCreationContextId', {
+	get() {
+		return currentCreationContextId;
+	}
+});
 Object.defineProperty(module.exports, 'create', {
 	get() {
 		return (value, fn, opts) => {
@@ -268,10 +275,11 @@ Object.defineProperty(module.exports, 'create', {
 			}
 
 			var basePassed = false;
-			
+
 			// const contextId = `${performance.now()}`;
 			const contextId = performance.now();
-			
+
+			const eid = hooks.eid;
 			const props = {
 				fn,
 				opts,
@@ -283,7 +291,7 @@ Object.defineProperty(module.exports, 'create', {
 				// and looks like not a bug
 				// but just memory pointer 
 				// changed externally from core
-				eid: hooks.eid,
+				eid,
 				tid: hooks.tid,
 				stack: getStack(),
 				counters: {
@@ -293,19 +301,29 @@ Object.defineProperty(module.exports, 'create', {
 					destroy: 0
 				},
 				startTime: null,
-				id : contextId
+				id: contextId,
 			};
+
+			runningContexts.set(contextId, props);
+			runningContextsValues.set(props, value);
+
+			currentCreationContextId = 0 + contextId;
+			const asyncResource = new AsyncResource('DIVE_ASYNC_RESOURCE', {
+				requireManualDestroy: false
+			});
+			props.asyncResource = asyncResource;
+			currentCreationContextId = null;
 
 			if (opts.debugMode) {
 				process._rawDebug('\n\n Context Started:', {
 					id: contextId,
+					eid: props.eid,
+					tid: props.tid,
 					value,
 				});
 			}
-			
-			runningContexts.set(contextId, props);
-			runningContextsValues.set(props, value);
-			
+
+
 			// position inside contexts & values
 			if (runningContexts.size !== runningContextsValues.size) {
 				throw errors.ContextCorrupted();
@@ -380,7 +398,7 @@ const destroy = (id = ID.current) => {
 	// so we just replace it with undefined value
 	runningContexts.delete(id);
 	runningContextsValues.delete(destroyedProps);
-	
+
 	return destroyedValue;
 };
 

@@ -186,125 +186,136 @@ Object.defineProperty(module.exports, 'context', {
 });
 
 
-var inspector, session;
+// var inspector, session;
 
-/**
- * @param {object} nextTickHookResource pointer of async_hooks.init hook resource
- * 
- * all code is synchronous
- * if it will fall to async mode, it will fail
- * therefore it is Experimental!
- * 
- * many many thanks to Alexey Kozyatinskiy
- * ak239 - Aleksei Koziatinskii <ak239spb@gmail.com>
- */
-const tickCheckDiveInternalScope = (nextTickHookResource) => {
-	var internalScope = {
-		listenerWorks: false,
-		scopeFound: false,
-	};
-	const listener = ({ params }) => {
-		internalScope.listenerWorks = true;
-		if (params.args && params.args[0] && params.args[0].type == 'function') {
-			const objectId = params.args[0].objectId;
-			session.post('Runtime.getProperties', {
-				objectId,
-				generatePreview: true
-			}, (err, data) => {
-				if (err) { return; }
-				var scopes = null;
-				data.internalProperties.forEach(it => {
-					if (it.name === '[[Scopes]]' && it.value) {
-						scopes = it.value;
-					}
-				});
-				if (!scopes || !scopes.objectId) {
-					return;
-				}
-				const objectId = scopes.objectId;
-				session.post('Runtime.getProperties', {
-					objectId,
-					generatePreview: true
-				}, (err, data) => {
-					if (err) { return; }
-					data.result.forEach((it) => {
-						const objectId = it.value.objectId;
-						if (it.value.description === 'Global') {
-							return;
-						}
-						if (internalScope.scopeFound) {
-							return;
-						}
-						session.post('Runtime.getProperties', { objectId }, (err, { result }) => {
-							if (err) { return; }
-							const it = result[0];
-							if (!(it && it.name === 'dive') || !it.value || !it.value.description) {
-								return;
-							}
-							if (it.value.description.indexOf('return diveFunctionWrapper') > 0) {
-								internalScope.scopeFound = true;
-							}
-						});
-					});
-				});
-			});
-		}
-	};
-	session.once('Runtime.consoleAPICalled', listener);
-	if (inspector.console) {
-		inspector.console.log(nextTickHookResource.callback);
-	} else {
-		// twice to be sure!
-		// eslint-disable-next-line no-console
-		console.context('dive').log(nextTickHookResource.callback);
-		// eslint-disable-next-line no-console
-		console.context('dive').log(nextTickHookResource.callback);
-	}
-	return internalScope;
-};
+// /**
+//  * @param {object} nextTickHookResource pointer of async_hooks.init hook resource
+//  * 
+//  * all code is synchronous
+//  * if it will fall to async mode, it will fail
+//  * therefore it is Experimental!
+//  * 
+//  * many many thanks to Alexey Kozyatinskiy
+//  * ak239 - Aleksei Koziatinskii <ak239spb@gmail.com>
+//  */
+// const tickCheckDiveInternalScope = (nextTickHookResource) => {
+// 	var internalScope = {
+// 		listenerWorks: false,
+// 		scopeFound: false,
+// 	};
+// 	const listener = ({ params }) => {
+// 		internalScope.listenerWorks = true;
+// 		if (params.args && params.args[0] && params.args[0].type == 'function') {
+// 			const objectId = params.args[0].objectId;
+// 			session.post('Runtime.getProperties', {
+// 				objectId,
+// 				generatePreview: true
+// 			}, (err, data) => {
+// 				if (err) { return; }
+// 				var scopes = null;
+// 				data.internalProperties.forEach(it => {
+// 					if (it.name === '[[Scopes]]' && it.value) {
+// 						scopes = it.value;
+// 					}
+// 				});
+// 				if (!scopes || !scopes.objectId) {
+// 					return;
+// 				}
+// 				const objectId = scopes.objectId;
+// 				session.post('Runtime.getProperties', {
+// 					objectId,
+// 					generatePreview: true
+// 				}, (err, data) => {
+// 					if (err) { return; }
+// 					data.result.forEach((it) => {
+// 						const objectId = it.value.objectId;
+// 						if (it.value.description === 'Global') {
+// 							return;
+// 						}
+// 						if (internalScope.scopeFound) {
+// 							return;
+// 						}
+// 						session.post('Runtime.getProperties', { objectId }, (err, { result }) => {
+// 							if (err) { return; }
+// 							const it = result[0];
+// 							if (!(it && it.name === 'dive') || !it.value || !it.value.description) {
+// 								return;
+// 							}
+// 							if (it.value.description.indexOf('return diveFunctionWrapper') > 0) {
+// 								internalScope.scopeFound = true;
+// 							}
+// 						});
+// 					});
+// 				});
+// 			});
+// 		}
+// 	};
+// 	session.once('Runtime.consoleAPICalled', listener);
+// 	if (inspector.console) {
+// 		inspector.console.log(nextTickHookResource.callback);
+// 	} else {
+// 		// twice to be sure!
+// 		// eslint-disable-next-line no-console
+// 		console.context('dive').log(nextTickHookResource.callback);
+// 		// eslint-disable-next-line no-console
+// 		console.context('dive').log(nextTickHookResource.callback);
+// 	}
+// 	return internalScope;
+// };
 
-const version = process.versions.node.split('.')[0];
-var experimentalPredictionEnabled = false;
+// const version = process.versions.node.split('.')[0];
+// var experimentalPredictionEnabled = false;
 
-Object.defineProperty(module.exports, 'experimentalPredictionEnabled', {
-	get () {
-		return !!experimentalPredictionEnabled;
-	},
-	enumerable: true
-});
-Object.defineProperty(module.exports, 'enableExperimentalPrediction', {
-	get() {
-		return () => {
-			if (version < 10) {
-				process._rawDebug(`
+// Object.defineProperty(module.exports, '_experimentalPredictionEnabled', {
+// 	get() {
+// 		return !!experimentalPredictionEnabled;
+// 	},
+// 	enumerable: true
+// });
+// Object.defineProperty(module.exports, '_enableExperimentalPrediction', {
+// 	get() {
+// 		return () => {
+// 			if (version < 10) {
+// 				process._rawDebug(`
 
-	For [ enableExperimentalPrediction ] usage
-	node verion must be greater than 10
+// 	For [ enableExperimentalPrediction ] usage
+// 	node verion must be greater than 10
 
-				`);
-			}
-			if (!context.hooksEnabled) {
-				process._rawDebug(`
+// 				`);
+// 			}
+// 			if (!context.hooksEnabled) {
+// 				process._rawDebug(`
 
-	For [ enableExperimentalPrediction ] usage
-	you need to '.enableAsyncHooks()' at first
+// 	For [ enableExperimentalPrediction ] usage
+// 	you need to '.enableAsyncHooks()' at first
 
-				`);
-			}
+// 				`);
+// 			}
 
-			inspector = require('inspector');
-			session = new inspector.Session();
-			session.connect();
+// 			inspector = require('inspector');
+// 			session = new inspector.Session();
+// 			session.connect();
+			
+// 			// session.once('HeapProfiler.heapStatsUpdate', (statusUpdate) => {
+// 			// 	process._rawDebug(statusUpdate);
+// 			// });
 
-			session.post('Runtime.enable', () => { });
+// 			// session.once('Runtime.executionContextCreated', ({ params }) => {
+// 			// 	process._rawDebug(params);
+// 			// });
+// 			// session.once('Runtime.bindingCalled', ({ params }) => {
+// 			// 	process._rawDebug(params);
+// 			// });
 
-			Object.defineProperty(module.exports, 'tickCheckDiveInternalScope', {
-				get() {
-					return tickCheckDiveInternalScope;
-				}
-			});
-			experimentalPredictionEnabled = true;
-		};
-	},
-	enumerable: false
-});
+// 			session.post('Runtime.enable', () => { });
+
+// 			Object.defineProperty(module.exports, 'tickCheckDiveInternalScope', {
+// 				get() {
+// 					return tickCheckDiveInternalScope;
+// 				}
+// 			});
+// 			experimentalPredictionEnabled = true;
+// 		};
+// 	},
+// 	enumerable: false
+// });
