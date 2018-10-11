@@ -137,8 +137,13 @@ You can call `hopAutoWrap` from function which is already wrapped and, then func
 For example, I use (mongoose.js)[https://mongoosejs.com/], and in the starter part of my App, I do the following with `.hopAutoWrap` to make sure all my code will work as I expect.
 
 ```JS
-['find', 'findOne', /* ... and others ... */, 'update', 'save']. forEach(methodName => {
-	mongoose.Model[methodName] = dive.hopAutoWrap(mongoose.Model[methodName]);
+['find', 'findOne', 
+	/* ... and others ... */,
+'update', 'save'].forEach(methodName => {
+	mongoose.Model[methodName] =
+		dive.hopAutoWrap(
+			mongoose.Model[methodName]
+		);
 });
 ```
 So far it allows me to be sure: when my code with context will fall to that method, it will not loose context for callback that method will call on finish. All this because there are that Caveate Queue situation inside of Mongoose.
