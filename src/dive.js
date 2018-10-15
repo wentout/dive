@@ -262,5 +262,48 @@ Object.defineProperty(dive, 'hopAutoWrap', {
 	}
 });
 
+
+const EventEmitter = require('events');
+const realEmit = EventEmitter.prototype.emit;
+Object.defineProperty(dive, 'wrapEventEmitter', {
+	get() {
+		return () => {
+			EventEmitter.prototype.emit = function (...args) {
+				if (!state.context.id) {
+					return Reflect.apply(realEmit, this, args);
+				}
+
+				args = args.map(arg => {
+					if (typeof arg == 'function') {
+						if (arg[isDiveBindedFunctionPointer]) {
+							return arg;
+						}
+						patchingInProgress = true;
+						arg = dive(arg, state.context.value, state.context.currentOpts);
+						patchingInProgress = false;
+					}
+					return arg;
+				});
+
+				let result = Reflect.apply(realEmit, this, args);
+				if (typeof result == 'function' && !result[isDiveBindedFunctionPointer]) {
+					patchingInProgress = true;
+					result = dive(result, state.context.value, state.context.currentOpts);
+					patchingInProgress = false;
+				}
+
+				return result;
+			};
+		};
+	}
+});
+Object.defineProperty(dive, 'unwrapEventEmitter', {
+	get() {
+		return () => {
+			EventEmitter.prototype.emit = realEmit;
+		};
+	}
+});
+
 module.exports = dive;
 
