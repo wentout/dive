@@ -128,7 +128,7 @@ dive((cb) => {
 
 And when there are `uncaughtException` currentContext will be emerged automatically.
 
-## .hopAutoWrap ( fn2wrap, wrapOnlyJumps )
+## dive.hopAutoWrap ( fn2wrap, wrapOnlyJumps )
 
 `fn2wrap` -- function, which must be wrapped 4 context passthrough
 `wrapOnlyJumps` -- boolean. This variable means the following:
@@ -147,6 +147,10 @@ For example, I use (mongoose.js)[https://mongoosejs.com/], and in the starter pa
 });
 ```
 So far it allows me to be sure: when my code with context will fall to that method, it will not loose context for callback that method will call on finish. All this because there are that Caveate Queue situation inside of Mongoose.
+
+
+## dive.wrapEventEmitter && dive.unwrapEventEmitter
+If your EventEmitters will pass functions as attributes and thouse functinos needs to be wrapped -- this will help.
 
 
 ## Promises
