@@ -5,7 +5,7 @@
 Using this module you are able to acheive the following functionality:
 
 1. CLS/TLS : Continuation/Thread Local Storage ([wikipedia link](https://en.wikipedia.org/wiki/Thread-local_storage)).
-2. Perfomance measuring, based on the top of **Dived Context** we are runningn in
+2. Perfomance measuring, based on the top of **Dived Context** we are runningn in.
 3. Meaningfull UncaughtException and UnhandledRejection extras, based on CLS.
 
 ... also there is plan to develop bit more rich functionality ...
@@ -54,7 +54,7 @@ Unfortunately there is no way to dive CLS inside of UnhandledRejection, so until
 
 You can found much more data about it at [**Issue 249**](https://github.com/nodejs/diagnostics/issues/249)
 
-As though Async Hooks cover almost all Asynchronous Functionality, **Still** all your code runs in a **! SYNCHRONOUS** route. This means there are black holes of code that can't be covered by hooks at all! So, I strictly warn you of getting high hopes on this technology. It doesn't mean it is broken in general. It means it mostly works perfect in all ways, but you need to get known how everything will blew up when you dig into black hole off synchronous code. So let's describe the folloing situation. You have Queue of Tasks: an **`Array`** for task (`functions`) and Task Runner -- a simple Interval, which runs tasks from that Array. So, then when inside of your synchronous **dive wrapped** code you'll `.push` a task in that array, there is no way to jump with dive.context inside of Task Runner, if this runner was build outside ov dive-wrapped context. Let me show you code example:
+As though Async Hooks cover almost all Asynchronous Functionality, **Still** all your code runs in a **! SYNCHRONOUS** route. This means there are black holes of code that can't be covered by hooks at all! So, I strictly warn you of getting high hopes on this technology. It doesn't mean it is broken in general. It means it mostly works perfect in all ways, but you need to get known how everything will blew up when you dig into black hole off synchronous code. So let's describe the folloing situation. You have Queue of Tasks: an **`Array`** for task (`functions`) and Task Runner -- a simple Interval, which runs tasks from that Array. So, then when inside of your synchronous **dive wrapped** code you'll `.push` a task in that array, there is no way to jump with dive.context inside of Task Runner, if this runner was build outside of the dive-wrapped context. Let me show you code example:
 
 ```javascript
 
@@ -100,8 +100,8 @@ Pointer to current context if execution thread is wrapped.
 ## dive.enableAsyncHooks()
 You need to switch async hooks trace to wrap any async code.
 You need to make this before you will make any wrapping.
-This is a global change, all your wrapped context will become async wrapped after, the way to switch this on for one context and do not switch for another is not yet implemented in this library. If you really need this -- make an Issue.
-So, I'm using the following code to instantiate dive itself
+This is a global change, all your wrapped contexts become async wrapped after. The way to switch this on for one context and do not switch for another is not yet implemented in the library. If you really need this -- make an Issue.
+So, I'm using the following code to instantiate dive itself:
 
 ```javascript
 const dive = require('context-dive');
@@ -118,7 +118,7 @@ Stop tracing of `dive.currentContext` and rid of any pointers to it in memory. Y
 const fn = () => {
 	const ctx = dive.ctx;
 	console.log(ctx); // 'simple test'
-	dive.emerge();
+	dive.emerge(); // !!! EMERGE ITSELF
 };
 
 dive((cb) => {
@@ -132,11 +132,13 @@ And when there are `uncaughtException` currentContext will be emerged automatica
 
 ## dive.hopAutoWrap ( fn2wrap, wrapOnlyJumps )
 
-`fn2wrap` -- function, which must be wrapped 4 context passthrough
-`wrapOnlyJumps` -- boolean. This variable means the following:
+`fn2wrap` -- function, which must be wrapped 4 context passthrough.
+`
+`wrapOnlyJumps` -- boolean. If you need to wrap only the callback for `fn2wrap`, but not the `fn2wrap` itself.
 
-You can call `hopAutoWrap` from function which is already wrapped and, then function you are wrapping will be wrapped, receiving the context (`dive.ctx`), of a function you are running now. This is an example from **Caveates** part above. But there may be situation, when there are no context: obviously most of your code will be not covered with `dive.ctx`. And if you just need to make that `dive.ctx` will pass through that function to callbacks -- you can use this `wrapOnlyJumps`. Moreover, if there will be no context when you use `.hopAutoWrap` -- it will fall to that situation. And backwards, if you have context inside of running code, but don't need to wrap `fn2wrap`, and need it simply allows `dive.ctx` pass through it to it callbacks -- use `wrapOnlyJumps == true`.
-For example, I use (mongoose.js)[https://mongoosejs.com/], and in the starter part of my App, I do the following with `.hopAutoWrap` to make sure all my code will work as I expect.
+You can call `hopAutoWrap` from function which is already wrapped. And then when that wrapped function runs with context as in the from **Caveates** part above, there might be situation, when there are no context: obviously most of your code will not be covered with `dive(...)`. And if you just need to pass `dive.ctx` to callbacks -- you can use this `wrapOnlyJumps`. Moreover, if there will be no context when you use `.hopAutoWrap` -- it will fall to the same condition. And backwards, if you have context inside of running code, but don't need to wrap `fn2wrap`, and need it simply allows `dive.ctx` pass through it to it callbacks -- use `wrapOnlyJumps == true`.
+
+I use this method with (mongoose.js)[https://mongoosejs.com/], and in the starter part of my App, I do the following with `dive.hopAutoWrap(...)` to make sure all my code will work as I expect.
 
 ```javascript
 ['find', 'findOne', 
@@ -148,15 +150,15 @@ For example, I use (mongoose.js)[https://mongoosejs.com/], and in the starter pa
 		);
 });
 ```
-So far it allows me to be sure: when my code with context will fall to that method, it will not loose context for callback that method will call on finish. All this because there are that Caveate Queue situation inside of Mongoose.
+So far it allows me to insist: when my code with context will dive to any wrapped mongoose method, it will not loose context for callback, when they will be called from the db. response polling queue. All this because there are that Caveate Queue situation inside of Mongoose, please read [Issue 249](https://github.com/nodejs/diagnostics/issues/249).
 
 
 ## dive.wrapEventEmitter && dive.unwrapEventEmitter
-If your EventEmitters will pass functions as attributes and thouse functinos needs to be wrapped -- this will help.
+If your EventEmitters will pass functions as attributes and theese functinos have to be wrapped -- this might help.
 
 
 ## Promises
-All the code you run inside of wrapped promises runs with currentContext. But `unhandledRejection` will not, cause it runs out of execution scope of async_hoos related wrappings. Promises are implemented on [ECMAScript 2015 Job Queue](https://www.ecma-international.org/ecma-262/6.0/#sec-jobs-and-job-queues). So them are bit inside of V8 core itself. And though they are wrapped with async_hooks too, there is no way to jump inside of unhandledRejection yet. But we have solution for it. I just desided to make a symbol sign in an every promise that runs out of my wrapped function. The implementation is hidden, I made helpers. Just pass promise there, and everything will work:
+All the code you run inside of wrapped promises runs with currentContext. But `unhandledRejection` will not, cause it runs out of execution scope of async_hoos related wrappings. Promises are implemented on [ECMAScript 2015 Job Queue](https://www.ecma-international.org/ecma-262/6.0/#sec-jobs-and-job-queues). So them are bit ounside of Node, and inside of V8 core itself. And though they are wrapped with async_hooks too, there is no way to jump inside of unhandledRejection yet. But we have solution for it. I just desided to make a symbol sign in an every promise that runs out of my wrapped function. The implementation is hidden, I made helpers. Just pass promise there, and everything will work:
 
 ```javascript
 process.once('unhandledRejection', (error, promise) => {
@@ -169,24 +171,29 @@ process.once('unhandledRejection', (error, promise) => {
 
 # tests
 And yes, now it have tests.
-Simply run: `npm test`
+Simply run: 
+```bash
+$ npm test
+```
 
 # examples
 the following npm command:
-`npm run examples`
+```bash
+$ npm run examples
+```
 
 and the following direct execution
-```
-node example/simple
-node example/promise
-node example/hard
+```bash
+$ node example/simple
+$ node example/promise
+$ node example/hard
 ```
 
 # duration
 Next code allows you to count how much time your context is running:
 
 ```javascript
-dive.measure()
+dive.measure();
 ```
 It uses `perfomance.now()` so it is hight prescision timer based.
 
