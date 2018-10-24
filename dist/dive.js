@@ -41,6 +41,8 @@ const bind = Function.prototype.bind;
  * @param {array} _args other arguments for wrapped function call
  */
 
+// const v8 = require('v8');
+
 const diveFunctionWrapper = function (fn, value, opts = optsDefaults) {
 
 	opts = Object.assign({}, optsDefaults, opts);
@@ -121,7 +123,10 @@ const diveFunctionWrapper = function (fn, value, opts = optsDefaults) {
 		}
 		if (typeof asyncResource.runInAsyncScope === 'function') {
 			asyncResource.runInAsyncScope(() => {
+				// const flag = 'trace_concurrent_recompilation';
+				// v8.setFlagsFromString(`--${flag}`);
 				answer = run();
+				// v8.setFlagsFromString(`--no${flag}`);
 			});
 		} else {
 			if (typeof asyncResource.emitBefore === 'function') {
@@ -223,7 +228,16 @@ process.on('uncaughtException', dive.uncaughtExceptionListener);
 
 Object.defineProperty(dive, 'hopAutoWrap', {
 	get() {
-		return function (fn2wrap) {
+		return function (fn2wrap, jumpsOnly) {
+			if (state.context.id && !jumpsOnly) {
+				if (fn2wrap[isDiveBindedFunctionPointer]) {
+					return fn2wrap;
+				}
+				patchingInProgress = true;
+				fn2wrap = dive(fn2wrap, state.context.value, state.context.currentOpts);
+				patchingInProgress = false;
+				return fn2wrap;
+			}
 			return function (...args) {
 				const contextId = state.context.id;
 				if (contextId) {
@@ -244,6 +258,49 @@ Object.defineProperty(dive, 'hopAutoWrap', {
 				}
 				return answer;
 			};
+		};
+	}
+});
+
+
+const EventEmitter = require('events');
+const realEmit = EventEmitter.prototype.emit;
+Object.defineProperty(dive, 'wrapEventEmitter', {
+	get() {
+		return () => {
+			EventEmitter.prototype.emit = function (...args) {
+				if (!state.context.id) {
+					return Reflect.apply(realEmit, this, args);
+				}
+
+				args = args.map(arg => {
+					if (typeof arg == 'function') {
+						if (arg[isDiveBindedFunctionPointer]) {
+							return arg;
+						}
+						patchingInProgress = true;
+						arg = dive(arg, state.context.value, state.context.currentOpts);
+						patchingInProgress = false;
+					}
+					return arg;
+				});
+
+				let result = Reflect.apply(realEmit, this, args);
+				if (typeof result == 'function' && !result[isDiveBindedFunctionPointer]) {
+					patchingInProgress = true;
+					result = dive(result, state.context.value, state.context.currentOpts);
+					patchingInProgress = false;
+				}
+
+				return result;
+			};
+		};
+	}
+});
+Object.defineProperty(dive, 'unwrapEventEmitter', {
+	get() {
+		return () => {
+			EventEmitter.prototype.emit = realEmit;
 		};
 	}
 });
