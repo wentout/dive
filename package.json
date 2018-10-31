@@ -1,6 +1,6 @@
 {
   "name": "context-dive",
-  "version": "2.1.9",
+  "version": "2.2.0",
   "description": "dive to async event-loop calls with context",
   "main": "dist/index.js",
   "scripts": {
@@ -29,8 +29,14 @@
     "url": "git+https://github.com/wentout/dive.git"
   },
   "keywords": [
+    "cls",
+    "continuation local storage",
     "context",
-    "async_hooks"
+    "execution scope",
+    "execution context",
+    "logical context",
+    "async_hooks",
+    "async storage"
   ],
   "author": "went.out@gmail.com",
   "contributors": [
