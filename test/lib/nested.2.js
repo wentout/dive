@@ -4,7 +4,7 @@ const version = process.versions.node.split('.')[0];
 
 const assert = require('assert').strict;
 
-const dive = require('../../');
+const dive = require('../..');
 const fn = require('./fn');
 
 var emergePassed = false;
