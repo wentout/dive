@@ -2,7 +2,7 @@
 
 process._rawDebug('\n\n\n SIMPLE EXAMPLE STARTED \n\n\n');
 
-const dive = require('../src/index.js');
+const dive = require('..');
 // comment this on and off to understand the idia
 const runHooks = process.argv[2] ? process.argv[2].trim() : true;
 if (runHooks !== 'false') {

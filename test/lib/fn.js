@@ -1,6 +1,6 @@
 'use strict';
 
-const dive = require('../../src/index');
+const dive = require('../..');
 const assert = require('assert').strict;
 
 module.exports = (done, name, expectNoContext) => {

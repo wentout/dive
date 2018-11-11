@@ -29,7 +29,6 @@ const bind = Function.prototype.bind;
  * syncronous function call carrator
  * with function arguments recursion
  * @param {function} fn what we are diving into
- * @param {function} if this is a function, then it is fn
  * @param {string} value stuff to put to currentContext
  * @param {object} opts some possible options for diving:
  * @param {boolean} opts.skipCbArg
@@ -38,7 +37,6 @@ const bind = Function.prototype.bind;
  *                   -- break patching of function, returned by fn itself
  * @param {boolean} opts.debugMode
  *                   -- run everything with verbose debugging
- * @param {array} _args other arguments for wrapped function call
  */
 
 // const v8 = require('v8');

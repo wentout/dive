@@ -19,7 +19,7 @@ process.on('uncaughtException', (error) => {
 	process.exit(1);
 });
 
-const dive = require('../src/index.js');
+const dive = require('..');
 dive.enableAsyncHooks();
 
 

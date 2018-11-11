@@ -3,7 +3,7 @@
 process._rawDebug('\n\n\n HARD EXAMPLE STARTED \n\n\n');
 
 const util = require('util');
-const dive = require('../src/index').enableAsyncHooks();
+const dive = require('..').enableAsyncHooks();
 // dive.enableFunctions();
 
 const debugMode = false;

@@ -280,6 +280,8 @@ Object.defineProperty(module.exports, 'create', {
 			const contextId = performance.now();
 
 			const eid = hooks.eid;
+			const tid = hooks.tid;
+
 			const props = {
 				fn,
 				opts,
@@ -292,7 +294,7 @@ Object.defineProperty(module.exports, 'create', {
 				// but just memory pointer 
 				// changed externally from core
 				eid,
-				tid: hooks.tid,
+				tid,
 				stack: getStack(),
 				counters: {
 					init: 0,

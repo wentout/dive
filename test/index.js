@@ -1,6 +1,6 @@
 'use strict';
 
-const dive = require('../src/index');
+const dive = require('..');
 dive.enableAsyncHooks();
 
 const fn = require('./lib/fn');

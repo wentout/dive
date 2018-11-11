@@ -1,6 +1,6 @@
 'use strict';
 
-const dive = require('../src/index');
+const dive = require('..');
 const test = require('./lib/nested.2');
 
 describe('nested jump from other code 2.1', () => {
