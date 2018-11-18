@@ -254,7 +254,7 @@ Object.defineProperty(module.exports, 'runningContextsValues', values);
 const getStack = () => {
 	const stack = (new Error()).stack
 		.split('\n')
-		.slice(4);
+		.slice(5);
 	stack.unshift('\n    <------- from ------->');
 	return stack.join('\n');
 };
