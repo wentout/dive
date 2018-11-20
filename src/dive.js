@@ -207,7 +207,7 @@ Object.defineProperty(dive, 'emergeAll', {
 	value: emergeAll
 });
 
-dive.uncaughtExceptionListener = () => {
+dive.uncaughtExceptionHandler = () => {
 	// Let sync error code runs with context
 	// we will destroy it immediately after
 	if (!state.hookRunning) {
@@ -222,7 +222,12 @@ dive.uncaughtExceptionListener = () => {
 	});
 };
 
-process.on('uncaughtException', dive.uncaughtExceptionListener);
+dive.enableUncaughtExceptionListener = () => {
+	process.on('uncaughtException', dive.uncaughtExceptionHandler);
+};
+dive.disableUncaughtExceptionListener = () => {
+	process.off('uncaughtException', dive.uncaughtExceptionHandler);
+};
 
 Object.defineProperty(dive, 'hopAutoWrap', {
 	get() {

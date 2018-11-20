@@ -156,6 +156,47 @@ So far it allows me to insist: when my code with context will dive to any wrappe
 ## dive.wrapEventEmitter && dive.unwrapEventEmitter
 If your EventEmitters will pass functions as attributes and theese functinos have to be wrapped -- this might help.
 
+## dive.uncaughtExceptionHandler
+There is no way to handle `uncaughtException` without instantiating a listener to it. But you **MUST** make `dive.emerge()` on uncaught exception. If not, you app will fail from `unemerged` dive code. Please feel free to investigate you established listeners using this code:
+
+```javascript
+process.listeners('uncaughtException').forEach((listener) => {
+	process._rawDebug(listener.toString());
+});
+```
+
+So, if you did `process.on('uncaughtException', ...)` in your own code before, you will definetely need to add there the following part for emerging dive :
+
+```javascript
+process.on('uncaughtException', (error) => {
+	
+	/*
+		your own code here
+	*/
+	
+	// add this to last line of your
+	// process.on('uncaughtException', ...)
+	// it is sync, so, nothing to care of
+
+	dive.uncaughtExceptionHandler();
+	
+});
+```
+So it will help dive emerge all necessary parts if there will be any exception in your code.
+
+### dive.enableUncaughtExceptionListener
+
+But if there were no `uncaughtException` listeners in your code at all, feel free to add dive own listener.
+
+```javascript
+dive.enableUncaughtExceptionListener();
+```
+
+However, be carefull, cause it will change the behaviour of your code: dive will prevent your process to exit if this listener is enabled, and there is no your own listeners. And suppose you need to make  your own listener initialisation instead. But, again, it is on you own way.
+
+### dive.disableUncaughtExceptionListener
+About to disable previously installed `dive.enableUncaughtExceptionListener`
+
 
 ## Promises
 All the code you run inside of wrapped promises runs with currentContext. But `unhandledRejection` will not, cause it runs out of execution scope of async_hoos related wrappings. Promises are implemented on [ECMAScript 2015 Job Queue](https://www.ecma-international.org/ecma-262/6.0/#sec-jobs-and-job-queues). So them are bit ounside of Node, and inside of V8 core itself. And though they are wrapped with async_hooks too, there is no way to jump inside of unhandledRejection yet. But we have solution for it. I just desided to make a symbol sign in an every promise that runs out of my wrapped function. The implementation is hidden, I made helpers. Just pass promise there, and everything will work:
