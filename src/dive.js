@@ -208,13 +208,14 @@ Object.defineProperty(dive, 'emergeAll', {
 });
 
 dive.uncaughtExceptionHandler = () => {
+	// in situation of uncaughtException
+	// we will may not reach "after" hook
+	if (state.hookRunning) {
+		state.hookRunning = false;
+	}
+	
 	// Let sync error code runs with context
 	// we will destroy it immediately after
-	if (!state.hookRunning) {
-		return;
-	}
-	// in situation of uncaughtException
-	// we will never reach "after" hook
 	const emergeId = context.id;
 	process.nextTick(() => {
 		emerge(emergeId);
