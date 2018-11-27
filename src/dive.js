@@ -216,11 +216,9 @@ dive.uncaughtExceptionHandler = () => {
 	
 	// Let sync error code runs with context
 	// we will destroy it immediately after
-	const emergeId = context.id;
-	process.nextTick(() => {
-		emerge(emergeId);
-		state.hookRunning = false;
-	});
+	if (context.id) {
+		emerge(context.id);
+	}
 };
 
 dive.enableUncaughtExceptionListener = () => {
