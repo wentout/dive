@@ -185,6 +185,7 @@ const init = (asyncId, type, triggerId, resource) => {
 	// patching promise for unhandledRejection
 	// cause when we will get into it,
 	// we will unable to touch the context
+	// will probably work on versions before 12
 	if (
 		it.type === 'promise' &&
 		it.resource &&

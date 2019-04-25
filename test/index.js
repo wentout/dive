@@ -95,7 +95,7 @@ describe('dive uncaughtException test', () => {
 });
 
 describe('dive unhandledRejection test', () => {
-	it('should have a context & cleanup it', (done) => {
+	it('should have unhandledRejection context', (done) => {
 		const assert = require('assert').strict;
 
 		const name = 'unhandledRejection test';
@@ -103,11 +103,6 @@ describe('dive unhandledRejection test', () => {
 		process.on('unhandledRejection', (error, promise) => {
 			const ctx1 = dive.getPromiseContext(promise);
 			assert(ctx1 === name, 'wrong promise context');
-			// process._rawDebug('--->>>', ctx1);
-			dive.emerge(promise[dive.promisePointer]);
-			const ctx2 = dive.getPromiseContext(promise);
-			// process._rawDebug('--->>>', ctx2);
-			assert(ctx2 === undefined, 'wrong promise context after emerge');
 			done();
 		});
 

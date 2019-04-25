@@ -48,7 +48,7 @@ So that anonymous function that reads `LinkToContext` as `dive.ctx` seems must h
 
 
 ## Promise Note
-Unfortunately there is no way to dive CLS inside of UnhandledRejection, so untill this moment the API for that is bit tricky, however, at least it definetely Works (instead of 1.1.8).
+Unfortunately there is no way to dive CLS inside of UnhandledRejection, so untill this moment the API for that is bit tricky or flaky. However, if it works, at least it definetely Works (instead of 1.1.8). But, starting from Node 12 all that API is made only for `unhandledRejection`.
 
 ## v 2 CAVEATES (e.g. Warning) !
 

@@ -52,7 +52,7 @@ Object.defineProperty(dive, 'ctx', context.valueDescriptor);
 Object.defineProperty(dive, 'currentContext', context.valueDescriptor);
 dive.enableExperimentalPrediction = state.enableExperimentalPrediction;
 
-['valueById', 'lastUnsetValue', 'currentContextStack', 'adjustErrorStack', 'measureById'].forEach(name => {
+['valueById', 'lastUnsetId', 'lastUnsetValue', 'currentContextStack', 'adjustErrorStack', 'measureById'].forEach(name => {
 	Object.defineProperty(dive, name, {
 		get() {
 			return context[name];
@@ -67,12 +67,17 @@ dive.promisePointer = hooks.promisePointer;
 dive.getPromiseContext = (promise) => {
 	const promiseContextId = promise[dive.promisePointer];
 	if (!promiseContextId) {
-		return undefined;
+		// dirty patch for node 12
+		return dive.lastUnsetValue || undefined;
 	}
 	return dive.valueById(promiseContextId);
 };
 dive.getPromiseMeasure = (promise) => {
-	const promiseContextId = promise[dive.promisePointer];
+	const promiseContextId =
+		promise[dive.promisePointer] ||
+		// dirty patch for node 12
+		dive.lastUnsetId;
+	
 	if (!promiseContextId) {
 		return undefined;
 	}
